@@ -1,20 +1,12 @@
 import React, { useState } from 'react';
 import {
-  View,
-  Text,
-  StyleSheet,
-  TextInput,
-  TouchableOpacity,
-  Alert,
-  Image,
-  StatusBar,
-  SafeAreaView,
-  Modal,
-  Animated,
-  Dimensions,
+  View, Text, StyleSheet, TextInput, TouchableOpacity, Alert,
+  Image, StatusBar, SafeAreaView, Modal, Animated, Dimensions
 } from 'react-native';
-import { launchCamera, launchImageLibrary } from 'react-native-image-picker';
+import * as ImagePicker from 'expo-image-picker';
 import { Picker } from '@react-native-picker/picker';
+import { supabase } from '../../services/supabase/auth';
+import { addClothing } from '../../services/supabase/data';
 
 const clothingTypes = [
   { label: 'Pick a type', value: '' },
@@ -68,89 +60,103 @@ const AddClothesScreen = ({ navigation }) => {
       }),
     ]).start(() => {
       setShowPicker(false);
-      if (shouldSetType && !type) {
-        setType('shirt');
-      }
+      if (shouldSetType && !type) setType('shirt');
     });
   };
 
   const showImagePicker = () => {
-    Alert.alert(
-      'Select Image',
-      'Choose an option',
-      [
-        { text: 'Camera', onPress: openCamera },
-        { text: 'Gallery', onPress: openGallery },
-        { text: 'Cancel', style: 'cancel' },
-      ]
-    );
-  };
-
-  const openCamera = () => {
-    const options = {
-      mediaType: 'photo',
-      quality: 0.8,
-      includeBase64: false,
-    };
-
-    launchCamera(options, (response) => {
-      if (response.didCancel || response.error) {
-        return;
-      }
-      if (response.assets && response.assets[0]) {
-        setSelectedImage(response.assets[0]);
-      }
-    });
-  };
-
-  const openGallery = () => {
-    const options = {
-      mediaType: 'photo',
-      quality: 0.8,
-      includeBase64: false,
-    };
-
-    launchImageLibrary(options, (response) => {
-      if (response.didCancel || response.error) {
-        return;
-      }
-      if (response.assets && response.assets[0]) {
-        setSelectedImage(response.assets[0]);
-      }
-    });
-  };
-
-  const handleSave = () => {
-    if (!name.trim()) {
-      Alert.alert('Error', 'Please enter a name for the item');
-      return;
-    }
-    if (!type) {
-      Alert.alert('Error', 'Please select a type');
-      return;
-    }
-    if (!selectedImage) {
-      Alert.alert('Error', 'Please select an image');
-      return;
-    }
-
-    // TODO: Implement save functionality with Supabase
-    console.log('Saving item:', { name, type, image: selectedImage });
-    
-    // Navigate back or show success message
-    Alert.alert('Success', 'Item added to closet!', [
-      { text: 'OK', onPress: () => navigation.goBack() }
+    Alert.alert('Select Image', 'Choose an option', [
+      { text: 'Camera', onPress: openCamera },
+      { text: 'Gallery', onPress: openGallery },
+      { text: 'Cancel', style: 'cancel' },
     ]);
   };
 
-  const handleCancel = () => {
-    navigation.goBack();
+  const openCamera = async () => {
+    const { status } = await ImagePicker.requestCameraPermissionsAsync();
+    if (status !== 'granted') {
+      Alert.alert('Permission Denied', 'Camera access is required.');
+      return;
+    }
+
+    const result = await ImagePicker.launchCameraAsync({
+      mediaTypes: ImagePicker.MediaTypeOptions.Images,
+      allowsEditing: true,
+      aspect: [1, 1],
+      quality: 0.8,
+    });
+
+    if (!result.canceled && result.assets?.[0]) {
+      setSelectedImage(result.assets[0]);
+    }
+  };
+
+  const openGallery = async () => {
+    const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
+    if (status !== 'granted') {
+      Alert.alert('Permission Denied', 'Gallery access is required.');
+      return;
+    }
+
+    const result = await ImagePicker.launchImageLibraryAsync({
+      mediaTypes: ImagePicker.MediaTypeOptions.Images,
+      allowsEditing: true,
+      aspect: [1, 1],
+      quality: 0.8,
+    });
+
+    if (!result.canceled && result.assets?.[0]) {
+      setSelectedImage(result.assets[0]);
+    }
+  };
+
+  const handleSave = async () => {
+    if (!name.trim()) return Alert.alert('Missing Name', 'Please enter a name');
+    if (!type) return Alert.alert('Missing Type', 'Please select a type');
+    if (!selectedImage) return Alert.alert('Missing Image', 'Please select an image');
+
+    try {
+      const {
+        data: { user },
+        error: userError,
+      } = await supabase.auth.getUser();
+      if (userError || !user) throw new Error("Authentication failed");
+
+      const fileExt = selectedImage.uri.split('.').pop();
+      const fileName = `${Date.now()}.${fileExt}`;
+      const filePath = `${user.id}/${fileName}`;
+
+      const response = await fetch(selectedImage.uri);
+      const blob = await response.blob();
+
+      const { error: uploadError } = await supabase.storage
+        .from('userclothes')
+        .upload(filePath, blob, {
+          contentType: selectedImage.mimeType || 'image/jpeg',
+        });
+
+      if (uploadError) throw uploadError;
+
+      // Get the public URL of the uploaded image
+      const { data: { publicUrl } } = supabase.storage
+        .from('userclothes')
+        .getPublicUrl(filePath);
+
+      const { error: dbError } = await addClothing(name, type, publicUrl);
+      if (dbError) throw dbError;
+
+      Alert.alert('Success', 'Clothing item saved!', [
+        { text: 'OK', onPress: () => navigation.goBack() },
+      ]);
+    } catch (err) {
+      console.error('Upload error:', err);
+      Alert.alert('Error', err.message || 'Something went wrong');
+    }
   };
 
   return (
     <SafeAreaView style={styles.container}>
       <View style={styles.content}>
-        {/* Image Picker */}
         <TouchableOpacity style={styles.imagePicker} onPress={showImagePicker}>
           {selectedImage ? (
             <Image source={{ uri: selectedImage.uri }} style={styles.selectedImage} />
@@ -159,7 +165,6 @@ const AddClothesScreen = ({ navigation }) => {
           )}
         </TouchableOpacity>
 
-        {/* Name Input */}
         <View style={styles.inputSection}>
           <Text style={styles.label}>Name</Text>
           <TextInput
@@ -171,72 +176,34 @@ const AddClothesScreen = ({ navigation }) => {
           />
         </View>
 
-        {/* Type Selection */}
         <View style={styles.inputSection}>
           <Text style={styles.label}>Type</Text>
-          <TouchableOpacity 
-            style={styles.pickerButton}
-            onPress={showPickerModal}
-          >
-            <Text style={[
-              styles.pickerButtonText,
-              !type && styles.pickerPlaceholder
-            ]}>
+          <TouchableOpacity style={styles.pickerButton} onPress={showPickerModal}>
+            <Text style={[styles.pickerButtonText, !type && styles.pickerPlaceholder]}>
               {type ? clothingTypes.find(item => item.value === type)?.label : 'Pick a type'}
             </Text>
           </TouchableOpacity>
         </View>
       </View>
 
-      {/* Type Picker Modal */}
-      <Modal
-        visible={showPicker}
-        transparent={true}
-        animationType="none"
-      >
-        <Animated.View 
-          style={[
-            styles.modalContainer,
-            {
-              opacity: backdropOpacity,
-            }
-          ]}
-        >
+      <Modal visible={showPicker} transparent animationType="none">
+        <Animated.View style={[styles.modalContainer, { opacity: backdropOpacity }]}>
           <TouchableOpacity
             style={styles.modalBackdrop}
             activeOpacity={1}
             onPress={() => hidePickerModal()}
           />
-          <Animated.View 
-            style={[
-              styles.modalContent,
-              {
-                transform: [{
-                  translateY: slideAnim
-                }]
-              }
-            ]}
-          >
+          <Animated.View style={[styles.modalContent, { transform: [{ translateY: slideAnim }] }]}>
             <View style={styles.modalHeader}>
-              <TouchableOpacity
-                style={styles.modalButton}
-                onPress={() => hidePickerModal()}
-              >
+              <TouchableOpacity onPress={() => hidePickerModal()}>
                 <Text style={styles.modalButtonText}>Cancel</Text>
               </TouchableOpacity>
-              <TouchableOpacity
-                style={styles.modalButton}
-                onPress={() => hidePickerModal(true)}
-              >
+              <TouchableOpacity onPress={() => hidePickerModal(true)}>
                 <Text style={[styles.modalButtonText, styles.modalDoneButton]}>Done</Text>
               </TouchableOpacity>
             </View>
-            <Picker
-              selectedValue={type}
-              onValueChange={setType}
-              style={styles.picker}
-            >
-              {clothingTypes.map((item) => (
+            <Picker selectedValue={type} onValueChange={setType} style={styles.picker}>
+              {clothingTypes.map(item => (
                 <Picker.Item
                   key={item.value}
                   label={item.label}
@@ -249,12 +216,10 @@ const AddClothesScreen = ({ navigation }) => {
         </Animated.View>
       </Modal>
 
-      {/* Bottom Buttons */}
       <View style={styles.buttonContainer}>
-        <TouchableOpacity style={styles.cancelButton} onPress={handleCancel}>
+        <TouchableOpacity style={styles.cancelButton} onPress={() => navigation.goBack()}>
           <Text style={styles.cancelButtonText}>CANCEL</Text>
         </TouchableOpacity>
-        
         <TouchableOpacity style={styles.saveButton} onPress={handleSave}>
           <Text style={styles.saveButtonText}>SAVE</Text>
         </TouchableOpacity>
@@ -262,6 +227,7 @@ const AddClothesScreen = ({ navigation }) => {
     </SafeAreaView>
   );
 };
+
 
 const styles = StyleSheet.create({
   container: {

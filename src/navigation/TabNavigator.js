@@ -15,6 +15,7 @@ import { colors, typography, spacing } from '../styles/theme';
 import InclosetHomepage from '../screens/home/InclosetHomepage';
 import ClosetScreen from '../screens/closet/ClosetScreen';
 import AddClothesScreen from '../screens/closet/AddClothesScreen';
+import CombineClothesScreen from '../screens/closet/CombineClothesScreen';
 
 const Tab = createBottomTabNavigator();
 const Stack = createNativeStackNavigator();
@@ -71,14 +72,31 @@ const ClosetStack = () => (
   </Stack.Navigator>
 );
 
-// Placeholder screens
-const CombineScreen = () => <View />;
+// Stack navigators for Combine
+const CombineStack = () => (
+  <Stack.Navigator screenOptions={defaultStackOptions}>
+    <Stack.Screen
+      name="CombineScreen"
+      component={CombineClothesScreen}
+      options={{
+        headerShown: true,
+        title: 'Create Outfit',
+        headerTitleStyle: {
+          ...typography.subtitle,
+          fontWeight: '600',
+        },
+      }}
+    />
+  </Stack.Navigator>
+);
+
+// Placeholder screen
 const ProfileScreen = () => <View />;
 
 const screenMap = {
   Home: HomeStack,
   Closet: ClosetStack,
-  Combine: CombineScreen,
+  Combine: CombineStack,
   Profile: ProfileScreen,
 };
 

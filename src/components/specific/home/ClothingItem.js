@@ -2,21 +2,30 @@ import React from 'react';
 import { TouchableOpacity, Image, StyleSheet, Text, View } from 'react-native';
 import { colors, spacing, layout, typography } from '../../../styles/theme';
 
-const ClothingItem = ({ imageUrl, name, onPress }) => {
+const ClothingItem = ({ imageUrl, name, onPress, selected }) => {
   return (
     <TouchableOpacity 
       style={styles.container} 
       onPress={onPress}
       activeOpacity={0.8}
     >
-      <View style={styles.imageContainer}>
+      <View style={[styles.imageContainer, selected && styles.selectedContainer]}>
         <Image
           source={{ uri: imageUrl }}
           style={styles.image}
           resizeMode="cover"
         />
+        {selected && (
+          <View style={styles.selectedOverlay}>
+            <View style={styles.checkmark}>
+              <Text style={styles.checkmarkText}>✓</Text>
+            </View>
+          </View>
+        )}
       </View>
-      <Text style={styles.name} numberOfLines={2}>{name}</Text>
+      <Text style={[styles.name, selected && styles.selectedName]} numberOfLines={2}>
+        {name}
+      </Text>
     </TouchableOpacity>
   );
 };
@@ -42,6 +51,10 @@ const styles = StyleSheet.create({
     elevation: 2,
     overflow: 'hidden',
   },
+  selectedContainer: {
+    borderWidth: 2,
+    borderColor: colors.primary,
+  },
   image: {
     width: '100%',
     height: '100%',
@@ -54,6 +67,33 @@ const styles = StyleSheet.create({
     textAlign: 'center',
     lineHeight: 16,
     fontWeight: '500',
+  },
+  selectedName: {
+    color: colors.primary,
+    fontWeight: '600',
+  },
+  selectedOverlay: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    backgroundColor: colors.primary + '20',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  checkmark: {
+    width: 24,
+    height: 24,
+    borderRadius: 12,
+    backgroundColor: colors.primary,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  checkmarkText: {
+    color: colors.background,
+    fontSize: 16,
+    fontWeight: 'bold',
   },
 });
 

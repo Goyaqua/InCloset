@@ -3,6 +3,15 @@
     "name": "InCloset",
     "slug": "InCloset",
     "version": "1.0.0",
+    "plugins": [
+      [
+        "expo-image-picker",
+        {
+          "photosPermission": "InCloset needs access to your photos to let you select clothes images.",
+          "cameraPermission": "InCloset needs access to your camera to take photos of your clothes."
+        }
+      ]
+    ],
     "orientation": "portrait",
     "icon": "./assets/splash-icon.png",
     "userInterfaceStyle": "light",
@@ -23,7 +32,12 @@
     },
     "ios": {
       "supportsTablet": true,
-      "bundleIdentifier": "com.incloset.app"
+      "bundleIdentifier": "com.incloset.app",
+      "infoPlist": {
+        "NSCameraUsageDescription": "InCloset needs access to your camera to take photos of your clothes",
+        "NSPhotoLibraryUsageDescription": "InCloset needs access to your photo library to select photos of your clothes",
+        "NSPhotoLibraryAddUsageDescription": "InCloset needs access to your photo library to save photos of your clothes"
+      }
     },
     "android": {
       "adaptiveIcon": {
@@ -31,7 +45,12 @@
         "backgroundColor": "#ffffff"
       },
       "package": "com.incloset.app",
-      "edgeToEdgeEnabled": true
+      "edgeToEdgeEnabled": true,
+      "permissions": [
+        "CAMERA",
+        "READ_EXTERNAL_STORAGE",
+        "WRITE_EXTERNAL_STORAGE"
+      ]
     },
     "web": {
       "favicon": "./assets/favicon.png"

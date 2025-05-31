@@ -50,6 +50,16 @@ const ClosetScreen = () => {
     }
   };
 
+  // Focus listener to refresh data when screen comes into focus
+  useEffect(() => {
+    const unsubscribe = navigation.addListener('focus', () => {
+      fetchClothes();
+    });
+
+    return unsubscribe;
+  }, [navigation]);
+
+  // Fetch clothes when search or category changes
   useEffect(() => {
     fetchClothes();
   }, [searchQuery, activeCategory]);
