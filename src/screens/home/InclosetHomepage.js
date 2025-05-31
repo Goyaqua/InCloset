@@ -1,54 +1,97 @@
-import React, { useState } from 'react';
-import { View, Text, StyleSheet, SafeAreaView, ScrollView } from 'react-native';
+import React, { useState, useEffect } from 'react';
+import { View, Text, StyleSheet, SafeAreaView, ScrollView, ActivityIndicator } from 'react-native';
 import { colors, spacing } from '../../styles/theme';
 import OutfitSection from '../../components/specific/home/OutfitSection';
 import AllClothesSection from '../../components/specific/home/AllClothesSection';
 import BottomNavigation from '../../components/specific/home/BottomNavigation';
-
-// Sample data - replace with actual data from your backend
-const sampleOutfits = [
-  {
-    id: 1,
-    title: 'Summer Casual',
-    items: [
-      { id: 1, image: 'https://via.placeholder.com/150' },
-      { id: 2, image: 'https://via.placeholder.com/150' }
-    ]
-  },
-  {
-    id: 2,
-    title: 'Work Outfit',
-    items: [
-      { id: 3, image: 'https://via.placeholder.com/150' },
-      { id: 4, image: 'https://via.placeholder.com/150' }
-    ]
-  }
-];
-
-const sampleClothes = Array.from({ length: 6 }, (_, i) => ({
-  id: i + 1,
-  image: 'https://via.placeholder.com/150',
-  category: 'tops'
-}));
+import { getOutfits, getFavorites, getClothes, deleteOutfit, toggleFavorite } from '../../services/supabase/data';
 
 const InclosetHomepage = () => {
   const [activeTab, setActiveTab] = useState('home');
+  const [loading, setLoading] = useState(true);
+  const [savedOutfits, setSavedOutfits] = useState([]);
+  const [favoriteOutfits, setFavoriteOutfits] = useState([]);
+  const [clothes, setClothes] = useState([]);
 
-  const handleOutfitPress = (outfitId) => {
-    console.log('Outfit pressed:', outfitId);
+  useEffect(() => {
+    loadData();
+  }, []);
+
+  const loadData = async () => {
+    try {
+      setLoading(true);
+      const [outfitsRes, favoritesRes, clothesRes] = await Promise.all([
+        getOutfits(),
+        getFavorites(),
+        getClothes()
+      ]);
+
+      if (outfitsRes.error) throw outfitsRes.error;
+      if (favoritesRes.error) throw favoritesRes.error;
+      if (clothesRes.error) throw clothesRes.error;
+
+      setSavedOutfits(outfitsRes.data || []);
+      setFavoriteOutfits(favoritesRes.data || []);
+      setClothes(clothesRes.data || []);
+    } catch (error) {
+      console.error('Error loading data:', error);
+      // You might want to show an error message to the user here
+    } finally {
+      setLoading(false);
+    }
   };
 
-  const handleAddOutfit = (section) => {
-    console.log('Add outfit to section:', section);
+  const handleOutfitPress = (outfitId) => {
+    // Navigate to outfit detail screen
+    console.log('Navigate to outfit:', outfitId);
+  };
+
+  const handleAddOutfit = async (section) => {
+    // Navigate to create outfit screen
+    console.log('Navigate to create outfit for section:', section);
+  };
+
+  const handleDeleteOutfit = async (outfitId) => {
+    try {
+      const { error } = await deleteOutfit(outfitId);
+      if (error) throw error;
+      await loadData(); // Reload data after deletion
+    } catch (error) {
+      console.error('Error deleting outfit:', error);
+      // Show error message to user
+    }
+  };
+
+  const handleToggleFavorite = async (outfitId) => {
+    try {
+      const { error } = await toggleFavorite(outfitId);
+      if (error) throw error;
+      await loadData(); // Reload data after toggling favorite
+    } catch (error) {
+      console.error('Error toggling favorite:', error);
+      // Show error message to user
+    }
   };
 
   const handleClothingPress = (itemId) => {
-    console.log('Clothing item pressed:', itemId);
+    // Navigate to clothing detail screen
+    console.log('Navigate to clothing:', itemId);
   };
 
   const handleSeeAll = () => {
-    console.log('See all clothes pressed');
+    // Navigate to all clothes screen
+    console.log('Navigate to all clothes');
   };
+
+  if (loading) {
+    return (
+      <SafeAreaView style={styles.container}>
+        <View style={styles.loadingContainer}>
+          <ActivityIndicator size="large" color={colors.primary} />
+        </View>
+      </SafeAreaView>
+    );
+  }
 
   return (
     <SafeAreaView style={styles.container}>
@@ -60,22 +103,26 @@ const InclosetHomepage = () => {
 
         <OutfitSection
           title="Saved Outfits"
-          outfits={sampleOutfits}
+          outfits={savedOutfits}
           onOutfitPress={handleOutfitPress}
           onAddPress={() => handleAddOutfit('saved')}
+          onDelete={handleDeleteOutfit}
+          onFavorite={handleToggleFavorite}
           backgroundColor={colors.primary + '10'} // 10% opacity
         />
 
         <OutfitSection
           title="Favourite Outfits"
-          outfits={sampleOutfits}
+          outfits={favoriteOutfits}
           onOutfitPress={handleOutfitPress}
           onAddPress={() => handleAddOutfit('favourite')}
+          onDelete={handleDeleteOutfit}
+          onFavorite={handleToggleFavorite}
           backgroundColor={colors.success + '10'} // 10% opacity
         />
 
         <AllClothesSection
-          clothes={sampleClothes}
+          clothes={clothes}
           onItemPress={handleClothingPress}
           onSeeAllPress={handleSeeAll}
         />
@@ -93,6 +140,11 @@ const InclosetHomepage = () => {
 };
 
 const styles = StyleSheet.create({
+  loadingContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
   container: {
     flex: 1,
     backgroundColor: colors.background,

@@ -9,6 +9,8 @@ const OutfitSection = ({
   outfits, 
   onOutfitPress, 
   onAddPress,
+  onDelete,
+  onFavorite,
   backgroundColor 
 }) => {
   return (
@@ -28,6 +30,9 @@ const OutfitSection = ({
             title={outfit.title}
             items={outfit.items}
             onPress={() => onOutfitPress(outfit.id)}
+            onDelete={() => onDelete(outfit.id)}
+            onFavorite={() => onFavorite(outfit.id)}
+            isFavorite={title.toLowerCase().includes('favourite')}
           />
         ))}
         <AddOutfitButton onPress={onAddPress} />

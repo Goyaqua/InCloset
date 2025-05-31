@@ -1,13 +1,15 @@
 import React from 'react';
 import { View, Text, Image, StyleSheet, TouchableOpacity, Dimensions } from 'react-native';
 import { colors, spacing, layout, typography } from '../../../styles/theme';
+import { MaterialIcons } from '@expo/vector-icons';
 
 const { width } = Dimensions.get('window');
 const ITEM_WIDTH = width * 0.35;
 
-const OutfitItem = ({ title, items, onPress }) => {
+const OutfitItem = ({ title, items, onPress, onDelete, onFavorite, isFavorite }) => {
   return (
-    <TouchableOpacity style={styles.container} onPress={onPress}>
+    <View style={styles.container}>
+      <TouchableOpacity style={styles.content} onPress={onPress}>
       <View style={styles.imagesContainer}>
         {items?.slice(0, 2).map((item, index) => (
           <Image
@@ -28,14 +30,37 @@ const OutfitItem = ({ title, items, onPress }) => {
           {items?.length || 0} items
         </Text>
       </View>
-    </TouchableOpacity>
+      </TouchableOpacity>
+      <View style={styles.actions}>
+        <TouchableOpacity
+          style={styles.actionButton}
+          onPress={onFavorite}
+        >
+          <MaterialIcons
+            name={isFavorite ? "favorite" : "favorite-border"}
+            size={20}
+            color={isFavorite ? colors.error : colors.textSecondary}
+          />
+        </TouchableOpacity>
+        <TouchableOpacity
+          style={styles.actionButton}
+          onPress={onDelete}
+        >
+          <MaterialIcons
+            name="delete-outline"
+            size={20}
+            color={colors.textSecondary}
+          />
+        </TouchableOpacity>
+      </View>
+    </View>
   );
 };
 
 const styles = StyleSheet.create({
   container: {
     width: ITEM_WIDTH,
-    height: ITEM_WIDTH * 1.2,
+    height: ITEM_WIDTH * 1.3,
     marginRight: spacing.md,
     borderRadius: layout.borderRadius,
     backgroundColor: colors.background,
@@ -44,6 +69,20 @@ const styles = StyleSheet.create({
       width: 0,
       height: 2,
     },
+  content: {
+    flex: 1,
+  },
+  actions: {
+    flexDirection: 'row',
+    justifyContent: 'space-around',
+    paddingVertical: spacing.xs,
+    backgroundColor: colors.background,
+    borderTopWidth: StyleSheet.hairlineWidth,
+    borderColor: colors.border,
+  },
+  actionButton: {
+    padding: spacing.xs,
+  },
     shadowOpacity: 0.1,
     shadowRadius: 4,
     elevation: 3,
