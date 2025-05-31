@@ -1,6 +1,17 @@
 import React, { useState } from 'react';
-import { View, Text, StyleSheet, SafeAreaView, Alert } from 'react-native';
-import { colors, typography, spacing, layout } from '../../styles/theme';
+import { 
+  View, 
+  Text, 
+  StyleSheet, 
+  SafeAreaView, 
+  TouchableOpacity, 
+  Alert, 
+  ActivityIndicator,
+  ScrollView,
+  KeyboardAvoidingView,
+  Platform
+} from 'react-native';
+import { colors, spacing, layout } from '../../styles/theme';
 import { Input } from '../../components/common/Input';
 import { Button } from '../../components/common/Button';
 import { signUp } from '../../services/supabase/auth';
@@ -8,52 +19,115 @@ import { signUp } from '../../services/supabase/auth';
 export const SignUpScreen = ({ navigation }) => {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [confirmPassword, setConfirmPassword] = useState('');
+  const [loading, setLoading] = useState(false);
 
   const handleSignUp = async () => {
-    if (!email || !password) {
+    if (!email || !password || !confirmPassword) {
       Alert.alert('Error', 'Please fill in all fields');
       return;
     }
-    const { error } = await signUp(email, password);
-    if (error) Alert.alert('Error', error.message);
-    else {
-      Alert.alert('Success', 'Check your email to confirm sign-up!');
-      navigation.goBack();
+
+    if (password !== confirmPassword) {
+      Alert.alert('Error', 'Passwords do not match');
+      return;
+    }
+
+    setLoading(true);
+    try {
+      const { error } = await signUp(email, password);
+      
+      if (error) {
+        Alert.alert('Error', error.message);
+      } else {
+        Alert.alert(
+          'Success',
+          'Please check your email for a confirmation link to complete your registration.',
+          [
+            {
+              text: 'OK',
+              onPress: () => navigation.navigate('Login'),
+            },
+          ]
+        );
+      }
+    } catch (error) {
+      Alert.alert('Error', 'An unexpected error occurred');
+    } finally {
+      setLoading(false);
     }
   };
 
   return (
     <SafeAreaView style={styles.container}>
-      <View style={styles.content}>
-        <View style={styles.header}>
-          <Text style={styles.title}>SIGN UP</Text>
-          <Text style={styles.subtitle}>Create your InCloset account</Text>
-        </View>
+      <KeyboardAvoidingView 
+        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+        style={styles.keyboardView}
+      >
+        <ScrollView 
+          contentContainerStyle={styles.scrollContent}
+          keyboardShouldPersistTaps="handled"
+          showsVerticalScrollIndicator={false}
+        >
+          <View style={styles.content}>
+            <View style={styles.header}>
+              <Text style={styles.title}>Create Account</Text>
+              <Text style={styles.subtitle}>Welcome to InCloset!</Text>
+            </View>
 
-        <View style={styles.form}>
-          <Input
-            placeholder="Email"
-            value={email}
-            onChangeText={setEmail}
-            icon="👤"
-            keyboardType="email-address"
-            autoCapitalize="none"
-          />
-          <Input
-            placeholder="Password"
-            value={password}
-            onChangeText={setPassword}
-            icon="🔒"
-            secureTextEntry
-          />
+            <View style={styles.form}>
+              <Input
+                placeholder="Email"
+                value={email}
+                onChangeText={setEmail}
+                icon="👤"
+                keyboardType="email-address"
+                autoCapitalize="none"
+                editable={!loading}
+                returnKeyType="next"
+              />
+              <Input
+                placeholder="Password"
+                value={password}
+                onChangeText={setPassword}
+                icon="🔒"
+                secureTextEntry
+                editable={!loading}
+                returnKeyType="next"
+              />
+              <Input
+                placeholder="Confirm Password"
+                value={confirmPassword}
+                onChangeText={setConfirmPassword}
+                icon="🔒"
+                secureTextEntry
+                editable={!loading}
+                returnKeyType="done"
+                onSubmitEditing={handleSignUp}
+              />
 
-          <Button 
-            title="Create Account" 
-            onPress={handleSignUp}
-            style={styles.button}
-          />
+              <Button 
+                title={loading ? "Creating Account..." : "Sign Up"} 
+                onPress={handleSignUp}
+                disabled={loading}
+              />
+
+              <TouchableOpacity 
+                onPress={() => navigation.navigate('Login')} 
+                style={styles.loginLink}
+                disabled={loading}
+              >
+                <Text style={styles.loginLinkText}>Already have an account? Login</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        </ScrollView>
+      </KeyboardAvoidingView>
+      {loading && (
+        <View style={styles.loadingOverlay}>
+          <ActivityIndicator size="large" color={colors.primary} />
         </View>
-      </View>
+      )}
     </SafeAreaView>
   );
 };
@@ -63,14 +137,21 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: colors.background,
   },
+  keyboardView: {
+    flex: 1,
+  },
+  scrollContent: {
+    flexGrow: 1,
+  },
   content: {
     flex: 1,
     paddingHorizontal: layout.containerPadding,
     justifyContent: 'center',
+    minHeight: '100%',
   },
   header: {
     alignItems: 'center',
-    marginBottom: spacing.xxl * 1.25,
+    marginBottom: spacing.xxl,
   },
   title: {
     fontSize: 32,
@@ -85,9 +166,23 @@ const styles = StyleSheet.create({
     color: colors.textSecondary,
   },
   form: {
+    width: '100%',
     marginBottom: spacing.xl,
   },
-  button: {
-    marginTop: spacing.xl,
+  loginLink: {
+    alignItems: 'center',
+    marginTop: spacing.md,
+    padding: spacing.sm,
+  },
+  loginLinkText: {
+    color: colors.primary,
+    fontSize: 14,
+    fontWeight: '500',
+  },
+  loadingOverlay: {
+    ...StyleSheet.absoluteFillObject,
+    backgroundColor: 'rgba(255, 255, 255, 0.7)',
+    justifyContent: 'center',
+    alignItems: 'center',
   },
 });
