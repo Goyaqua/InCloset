@@ -8,6 +8,12 @@ export const colors = {
   danger: '#FF3B30',
   warning: '#FF9500',
   border: '#CECED2',
+  container1: '#D7D0FF',  
+  container2: '#C7F4C2',  
+  itemcontainer1: '#BDB5F0', 
+  itemcontainer2: '#ABDBA5',
+  textcontainer1: '#321562',
+  textcontainer2: '#004F2E',
 };
 
 export const spacing = {

@@ -100,23 +100,25 @@ const InclosetHomepage = ({ navigation }) => {
         </View>
 
         <OutfitSection
-          title="Saved Outfits"
+          title="SAVED OUTFITS"
           outfits={savedOutfits}
           onOutfitPress={handleOutfitPress}
           onAddPress={() => handleAddOutfit('saved')}
           onDelete={handleDeleteOutfit}
           onFavorite={handleToggleFavorite}
-          backgroundColor={colors.primary + '10'} // 10% opacity
+          backgroundColor={colors.container1}
+          itemContainerColor1={colors.textcontainer1}
         />
 
         <OutfitSection
-          title="Favourite Outfits"
+          title="FAVOURITE OUTFITS"
           outfits={favoriteOutfits}
           onOutfitPress={handleOutfitPress}
           onAddPress={() => handleAddOutfit('favourite')}
           onDelete={handleDeleteOutfit}
           onFavorite={handleToggleFavorite}
-          backgroundColor={colors.success + '10'} // 10% opacity
+          backgroundColor={colors.container2}
+          itemContainerColor2={colors.textcontainer2}
         />
 
         <AllClothesSection

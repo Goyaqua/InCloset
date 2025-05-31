@@ -1,10 +1,14 @@
 import React, { useCallback, useEffect, useState } from 'react';
 import { View } from 'react-native';
 import * as SplashScreen from 'expo-splash-screen';
+import { enableScreens } from 'react-native-screens';
 import { AppNavigator } from './src/navigation/AppNavigator';
 import { onAuthStateChange, getSession } from './src/services/supabase/auth';
 
 // Configure and prevent auto hide
+// Enable native screens implementation
+enableScreens();
+
 SplashScreen.preventAutoHideAsync()
   .then(result => console.log(`SplashScreen.preventAutoHideAsync() succeeded: ${result}`))
   .catch(console.warn);

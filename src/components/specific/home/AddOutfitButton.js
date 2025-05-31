@@ -5,12 +5,18 @@ import { colors, spacing, layout } from '../../../styles/theme';
 const { width } = Dimensions.get('window');
 const ITEM_WIDTH = width * 0.35;
 
-const AddOutfitButton = ({ onPress }) => {
+const AddOutfitButton = ({ onPress, containerColor = colors.primary }) => {
   return (
-    <TouchableOpacity style={styles.container} onPress={onPress}>
+    <TouchableOpacity 
+      style={[
+        styles.container, 
+        { borderColor: containerColor }
+      ]} 
+      onPress={onPress}
+    >
       <View style={styles.content}>
-        <Text style={styles.plusIcon}>+</Text>
-        <Text style={styles.text}>Add Outfit</Text>
+        <Text style={[styles.plusIcon, { color: containerColor }]}>+</Text>
+        <Text style={[styles.text, { color: containerColor }]}>Add Outfit</Text>
       </View>
     </TouchableOpacity>
   );
@@ -22,10 +28,9 @@ const styles = StyleSheet.create({
     height: ITEM_WIDTH * 1.2,
     marginRight: spacing.md,
     borderRadius: layout.borderRadius,
-    backgroundColor: colors.background,
+    backgroundColor: 'transparent',
     borderWidth: 2,
     borderStyle: 'dashed',
-    borderColor: colors.primary,
     justifyContent: 'center',
     alignItems: 'center',
   },
@@ -34,13 +39,11 @@ const styles = StyleSheet.create({
   },
   plusIcon: {
     fontSize: 32,
-    color: colors.primary,
     marginBottom: spacing.xs,
   },
   text: {
     fontSize: 14,
     fontWeight: '500',
-    color: colors.primary,
   },
 });
 
