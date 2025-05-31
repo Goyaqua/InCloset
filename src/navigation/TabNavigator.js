@@ -6,6 +6,8 @@ import { colors, typography } from '../styles/theme';
 
 import InclosetHomepage from '../screens/home/InclosetHomepage';
 import ClosetScreen from '../screens/closet/ClosetScreen';
+import ProfileScreen from '../screens/profile/ProfileScreen';
+import EditProfileScreen from '../screens/profile/EditProfileScreen';
 
 const Tab = createBottomTabNavigator();
 const Stack = createStackNavigator();
@@ -96,9 +98,19 @@ const ClosetStack = () => (
   </Stack.Navigator>
 );
 
+const ProfileStack = () => (
+  <Stack.Navigator
+    screenOptions={{
+      headerShown: false,
+    }}
+  >
+    <Stack.Screen name="ProfileScreen" component={ProfileScreen} />
+    <Stack.Screen name="EditProfile" component={EditProfileScreen} />
+  </Stack.Navigator>
+);
+
 // Placeholder components for other tabs
 const CombineScreen = () => null;
-const ProfileScreen = () => null;
 
 export const TabNavigator = () => {
   return (
@@ -160,7 +172,7 @@ export const TabNavigator = () => {
       />
       <Tab.Screen
         name="Profile"
-        component={ProfileScreen}
+        component={ProfileStack}
         options={{ headerShown: false }}
       />
     </Tab.Navigator>
