@@ -5,7 +5,8 @@ import { AuthScreen } from '../screens/auth/AuthScreen';
 import { SignUpScreen } from '../screens/auth/SignUpScreen';
 import { ForgotPasswordScreen } from '../screens/auth/ForgotPasswordScreen';
 import InclosetHomepage from '../screens/home/InclosetHomepage';
-import { colors } from '../styles/theme';
+import ClosetScreen from '../screens/closet/ClosetScreen';
+import { colors, typography } from '../styles/theme';
 
 const Stack = createNativeStackNavigator();
 
@@ -31,6 +32,42 @@ export const AppNavigator = ({ session }) => {
               component={InclosetHomepage}
               options={{ 
                 headerShown: false
+              }}
+            />
+            <Stack.Screen 
+              name="Closet"
+              component={ClosetScreen}
+              options={{ 
+                headerShown: true,
+                title: 'My Closet',
+          headerTitleStyle: {
+            ...typography.subtitle,
+            fontWeight: '600',
+          },
+              }}
+            />
+            <Stack.Screen 
+              name="AddClothes"
+              component={ClosetScreen} // Placeholder until AddClothes screen is created
+              options={{ 
+                headerShown: true,
+                title: 'Add New Item',
+          headerTitleStyle: {
+            ...typography.subtitle,
+            fontWeight: '600',
+          },
+              }}
+            />
+            <Stack.Screen 
+              name="ClothingDetails"
+              component={ClosetScreen} // Placeholder until ClothingDetails screen is created
+              options={{ 
+                headerShown: true,
+                title: 'Item Details',
+          headerTitleStyle: {
+            ...typography.subtitle,
+            fontWeight: '600',
+          },
               }}
             />
           </Stack.Group>

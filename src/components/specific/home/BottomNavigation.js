@@ -1,12 +1,13 @@
 import React from 'react';
 import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
+import MaterialCommunityIcons from 'react-native-vector-icons/MaterialCommunityIcons';
 import { colors, spacing } from '../../../styles/theme';
 
 const tabs = [
-  { id: 'home', label: 'Home' },
-  { id: 'wardrobe', label: 'Wardrobe' },
-  { id: 'outfits', label: 'Outfits' },
-  { id: 'profile', label: 'Profile' }
+  { id: 'home', label: 'Home', icon: 'home-outline' },
+  { id: 'wardrobe', label: 'Closet', icon: 'wardrobe-outline' },
+  { id: 'clothes', label: 'Combine', icon: 'hanger' },
+  { id: 'profile', label: 'Profile', icon: 'account-circle-outline' }
 ];
 
 const BottomNavigation = ({ activeTab, onTabPress }) => {
@@ -23,7 +24,11 @@ const BottomNavigation = ({ activeTab, onTabPress }) => {
             ]}
             onPress={() => onTabPress(tab.id)}
           >
-            {/* We'll use text for now, can be replaced with icons */}
+            <MaterialCommunityIcons
+              name={tab.icon}
+              size={24}
+              color={isActive ? colors.primary : colors.textSecondary}
+            />
             <Text style={[
               styles.tabText,
               isActive && styles.activeTabText
@@ -58,12 +63,13 @@ const styles = StyleSheet.create({
   activeTab: {
     backgroundColor: colors.primary + '20', // 20% opacity
     borderRadius: 20,
-    marginHorizontal: spacing.xs,
+    width: '90%',
   },
   tabText: {
-    fontSize: 14,
+    fontSize: 12,
     fontWeight: '500',
     color: colors.textSecondary,
+    marginTop: spacing.xs,
   },
   activeTabText: {
     color: colors.primary,

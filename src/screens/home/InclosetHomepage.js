@@ -6,8 +6,16 @@ import AllClothesSection from '../../components/specific/home/AllClothesSection'
 import BottomNavigation from '../../components/specific/home/BottomNavigation';
 import { getOutfits, getFavorites, getClothes, deleteOutfit, toggleFavorite } from '../../services/supabase/data';
 
-const InclosetHomepage = () => {
+const InclosetHomepage = ({ navigation }) => {
   const [activeTab, setActiveTab] = useState('home');
+
+  const handleTabPress = (tabId) => {
+    setActiveTab(tabId);
+    if (tabId === 'wardrobe') {
+      navigation.navigate('Closet');
+    }
+    // Add other tab navigation handlers as needed
+  };
   const [loading, setLoading] = useState(true);
   const [savedOutfits, setSavedOutfits] = useState([]);
   const [favoriteOutfits, setFavoriteOutfits] = useState([]);
@@ -133,7 +141,7 @@ const InclosetHomepage = () => {
 
       <BottomNavigation
         activeTab={activeTab}
-        onTabPress={setActiveTab}
+        onTabPress={handleTabPress}
       />
     </SafeAreaView>
   );
