@@ -3,19 +3,9 @@ import { View, Text, StyleSheet, SafeAreaView, ScrollView, ActivityIndicator } f
 import { colors, spacing } from '../../styles/theme';
 import OutfitSection from '../../components/specific/home/OutfitSection';
 import AllClothesSection from '../../components/specific/home/AllClothesSection';
-import BottomNavigation from '../../components/specific/home/BottomNavigation';
 import { getOutfits, getFavorites, getClothes, deleteOutfit, toggleFavorite } from '../../services/supabase/data';
 
 const InclosetHomepage = ({ navigation }) => {
-  const [activeTab, setActiveTab] = useState('home');
-
-  const handleTabPress = (tabId) => {
-    setActiveTab(tabId);
-    if (tabId === 'wardrobe') {
-      navigation.navigate('Closet');
-    }
-    // Add other tab navigation handlers as needed
-  };
   const [loading, setLoading] = useState(true);
   const [savedOutfits, setSavedOutfits] = useState([]);
   const [favoriteOutfits, setFavoriteOutfits] = useState([]);
@@ -103,7 +93,7 @@ const InclosetHomepage = ({ navigation }) => {
 
   return (
     <SafeAreaView style={styles.container}>
-      <ScrollView style={styles.scrollView}>
+      <ScrollView style={styles.scrollView} contentContainerStyle={styles.scrollContent}>
         <View style={styles.header}>
           <Text style={styles.title}>INCLOSET</Text>
           <Text style={styles.greeting}>Hello User!</Text>
@@ -134,15 +124,7 @@ const InclosetHomepage = ({ navigation }) => {
           onItemPress={handleClothingPress}
           onSeeAllPress={handleSeeAll}
         />
-
-        {/* Add padding at the bottom for the navigation bar */}
-        <View style={styles.bottomPadding} />
       </ScrollView>
-
-      <BottomNavigation
-        activeTab={activeTab}
-        onTabPress={handleTabPress}
-      />
     </SafeAreaView>
   );
 };
@@ -176,8 +158,8 @@ const styles = StyleSheet.create({
     fontWeight: '400',
     color: colors.textSecondary,
   },
-  bottomPadding: {
-    height: 80, // Height of the bottom navigation + extra padding
+  scrollContent: {
+    paddingBottom: spacing.lg,
   },
 });
 

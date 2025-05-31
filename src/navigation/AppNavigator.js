@@ -4,9 +4,8 @@ import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { AuthScreen } from '../screens/auth/AuthScreen';
 import { SignUpScreen } from '../screens/auth/SignUpScreen';
 import { ForgotPasswordScreen } from '../screens/auth/ForgotPasswordScreen';
-import InclosetHomepage from '../screens/home/InclosetHomepage';
-import ClosetScreen from '../screens/closet/ClosetScreen';
-import { colors, typography } from '../styles/theme';
+import { TabNavigator } from './TabNavigator';
+import { colors } from '../styles/theme';
 
 const Stack = createNativeStackNavigator();
 
@@ -26,51 +25,11 @@ export const AppNavigator = ({ session }) => {
       >
         {session ? (
           // Authenticated Stack
-          <Stack.Group>
-            <Stack.Screen 
-              name="Home"
-              component={InclosetHomepage}
-              options={{ 
-                headerShown: false
-              }}
-            />
-            <Stack.Screen 
-              name="Closet"
-              component={ClosetScreen}
-              options={{ 
-                headerShown: true,
-                title: 'My Closet',
-          headerTitleStyle: {
-            ...typography.subtitle,
-            fontWeight: '600',
-          },
-              }}
-            />
-            <Stack.Screen 
-              name="AddClothes"
-              component={ClosetScreen} // Placeholder until AddClothes screen is created
-              options={{ 
-                headerShown: true,
-                title: 'Add New Item',
-          headerTitleStyle: {
-            ...typography.subtitle,
-            fontWeight: '600',
-          },
-              }}
-            />
-            <Stack.Screen 
-              name="ClothingDetails"
-              component={ClosetScreen} // Placeholder until ClothingDetails screen is created
-              options={{ 
-                headerShown: true,
-                title: 'Item Details',
-          headerTitleStyle: {
-            ...typography.subtitle,
-            fontWeight: '600',
-          },
-              }}
-            />
-          </Stack.Group>
+          <Stack.Screen
+            name="Main"
+            component={TabNavigator}
+            options={{ headerShown: false }}
+          />
         ) : (
           // Non-authenticated Stack
           <Stack.Group>

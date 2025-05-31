@@ -1,22 +1,21 @@
 import React from 'react';
-import { View, FlatList, StyleSheet, Dimensions } from 'react-native';
+import { View, FlatList, StyleSheet } from 'react-native';
 import ClothingItem from '../home/ClothingItem';
 import AddItemButton from './AddItemButton';
 import { colors, spacing } from '../../../styles/theme';
 
-const { width } = Dimensions.get('window');
-const COLUMN_COUNT = 3;
-const ITEM_SPACING = spacing.sm;
-const ITEM_WIDTH = (width - (spacing.lg * 2 + (COLUMN_COUNT - 1) * ITEM_SPACING)) / COLUMN_COUNT;
-
 const ClothesGrid = ({ clothes, onPressItem, onPressAdd }) => {
   const renderItem = ({ item, index }) => {
     if (item.isAddButton) {
-      return <AddItemButton onPress={onPressAdd} />;
+      return (
+        <View style={styles.clothingItem}>
+          <AddItemButton onPress={onPressAdd} />
+        </View>
+      );
     }
     
     return (
-      <View style={[styles.itemContainer, { width: ITEM_WIDTH }]}>
+      <View style={styles.clothingItem}>
         <ClothingItem
           imageUrl={item.image_url}
           name={item.name}
@@ -29,30 +28,34 @@ const ClothesGrid = ({ clothes, onPressItem, onPressAdd }) => {
   const data = [...clothes, { id: 'add-button', isAddButton: true }];
 
   return (
-    <FlatList
-      data={data}
-      renderItem={renderItem}
-      keyExtractor={item => item.id}
-      numColumns={COLUMN_COUNT}
-      columnWrapperStyle={styles.row}
-      showsVerticalScrollIndicator={false}
-      contentContainerStyle={styles.container}
-    />
+    <View style={styles.gridContainer}>
+      <FlatList
+        data={data}
+        renderItem={renderItem}
+        keyExtractor={item => item.id}
+        numColumns={3}
+        showsVerticalScrollIndicator={false}
+        contentContainerStyle={styles.listContainer}
+      />
+    </View>
   );
 };
 
 const styles = StyleSheet.create({
-  container: {
-    paddingHorizontal: spacing.lg,
-    paddingBottom: spacing.lg,
+  gridContainer: {
+    flex: 1,
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    justifyContent: 'space-between',
+    paddingBottom: 20,
   },
-  row: {
-    justifyContent: 'flex-start',
-    gap: ITEM_SPACING,
-    marginBottom: ITEM_SPACING,
+  listContainer: {
+    paddingHorizontal: 16,
   },
-  itemContainer: {
-    aspectRatio: 1,
+  clothingItem: {
+    width: '30%',
+    marginBottom: 20,
+    alignItems: 'center',
   },
 });
 
