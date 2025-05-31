@@ -14,6 +14,7 @@ import { colors, typography, spacing } from '../styles/theme';
 
 import InclosetHomepage from '../screens/home/InclosetHomepage';
 import ClosetScreen from '../screens/closet/ClosetScreen';
+import AddClothesScreen from '../screens/closet/AddClothesScreen';
 
 const Tab = createBottomTabNavigator();
 const Stack = createNativeStackNavigator();
@@ -49,6 +50,18 @@ const ClosetStack = () => (
       options={{
         headerShown: true,
         title: 'Closet',
+        headerTitleStyle: {
+          ...typography.subtitle,
+          fontWeight: '600',
+        },
+      }}
+    />
+    <Stack.Screen
+      name="AddClothes"
+      component={AddClothesScreen}
+      options={{
+        headerShown: true,
+        title: 'Add Item',
         headerTitleStyle: {
           ...typography.subtitle,
           fontWeight: '600',
