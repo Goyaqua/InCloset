@@ -13,6 +13,8 @@ import MaterialCommunityIcons from 'react-native-vector-icons/MaterialCommunityI
 import { colors, typography, spacing } from '../styles/theme';
 
 import InclosetHomepage from '../screens/home/InclosetHomepage';
+import ProfileScreen from '../screens/profile/ProfileScreen';
+import EditProfileScreen from '../screens/profile/EditProfileScreen';
 import ClosetScreen from '../screens/closet/ClosetScreen';
 import AddClothesScreen from '../screens/closet/AddClothesScreen';
 import CombineClothesScreen from '../screens/closet/CombineClothesScreen';
@@ -90,14 +92,36 @@ const CombineStack = () => (
   </Stack.Navigator>
 );
 
-// Placeholder screen
-const ProfileScreen = () => <View />;
+// Stack navigator for Profile
+const ProfileStack = () => (
+  <Stack.Navigator screenOptions={defaultStackOptions}>
+    <Stack.Screen
+      name="Profile"
+      component={ProfileScreen}
+      options={{
+        headerShown: false
+      }}
+    />
+    <Stack.Screen
+      name="EditProfile"
+      component={EditProfileScreen}
+      options={{
+        headerShown: true,
+        title: 'Edit Profile',
+        headerTitleStyle: {
+          ...typography.subtitle,
+          fontWeight: '600',
+        },
+      }}
+    />
+  </Stack.Navigator>
+);
 
 const screenMap = {
   Home: HomeStack,
   Closet: ClosetStack,
   Combine: CombineStack,
-  Profile: ProfileScreen,
+  Profile: ProfileStack,
 };
 
 // Custom Tab Bar
