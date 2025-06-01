@@ -1,8 +1,36 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { TouchableOpacity, Image, StyleSheet, Text, View } from 'react-native';
 import { colors, spacing, layout, typography } from '../../../styles/theme';
+import { supabase } from '../../../services/supabase/auth';
 
-const ClothingItem = ({ imageUrl, name, onPress, selected }) => {
+const ClothingItem = ({ imagePath, name, onPress, selected }) => {
+  const [imageUrl, setImageUrl] = useState(null);
+
+  useEffect(() => {
+    const getSignedUrl = async () => {
+      try {
+        const { data: { signedUrl }, error } = await supabase.storage
+          .from('userclothes')
+          .createSignedUrl(imagePath, 3600); // 1 hour expiry
+        
+        if (error) {
+          console.error('Error getting signed URL:', error);
+          return;
+        }
+        
+        if (signedUrl) {
+          setImageUrl(signedUrl);
+        }
+      } catch (error) {
+        console.error('Error in getSignedUrl:', error);
+      }
+    };
+
+    if (imagePath) {
+      getSignedUrl();
+    }
+  }, [imagePath]);
+
   return (
     <TouchableOpacity 
       style={styles.container} 
@@ -10,11 +38,13 @@ const ClothingItem = ({ imageUrl, name, onPress, selected }) => {
       activeOpacity={0.8}
     >
       <View style={[styles.imageContainer, selected && styles.selectedContainer]}>
-        <Image
-          source={{ uri: imageUrl }}
-          style={styles.image}
-          resizeMode="cover"
-        />
+        {imageUrl && (
+          <Image
+            source={{ uri: imageUrl }}
+            style={styles.image}
+            resizeMode="cover"
+          />
+        )}
         {selected && (
           <View style={styles.selectedOverlay}>
             <View style={styles.checkmark}>

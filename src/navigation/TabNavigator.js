@@ -18,6 +18,7 @@ import EditProfileScreen from '../screens/profile/EditProfileScreen';
 import ClosetScreen from '../screens/closet/ClosetScreen';
 import AddClothesScreen from '../screens/closet/AddClothesScreen';
 import CombineClothesScreen from '../screens/closet/CombineClothesScreen';
+import ClothingDetailsScreen from '../screens/closet/ClothingDetailsScreen';
 
 const Tab = createBottomTabNavigator();
 const Stack = createNativeStackNavigator();
@@ -65,6 +66,18 @@ const ClosetStack = () => (
       options={{
         headerShown: true,
         title: 'Add Item',
+        headerTitleStyle: {
+          ...typography.subtitle,
+          fontWeight: '600',
+        },
+      }}
+    />
+    <Stack.Screen
+      name="ClothingDetails"
+      component={ClothingDetailsScreen}
+      options={{
+        headerShown: true,
+        title: 'Item Details',
         headerTitleStyle: {
           ...typography.subtitle,
           fontWeight: '600',

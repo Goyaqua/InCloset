@@ -15,22 +15,17 @@ export const getClothes = async () => {
   }
 };
 
-export const addClothing = async (name, type, imageUrl) => {
+export const addClothing = async (name, type, filePath) => {
   try {
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) throw new Error('User not authenticated');
-
-    // First verify the image URL is in the correct user's folder
-    if (!imageUrl.includes(`${user.id}/`)) {
-      throw new Error('Invalid image URL structure');
-    }
 
     const { data, error } = await supabase
       .from('clothes')
       .insert([{ 
         name,
         type,
-        image_url: imageUrl,
+        image_path: filePath,
         user_id: user.id,
         created_at: new Date().toISOString()
       }])

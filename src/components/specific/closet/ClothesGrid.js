@@ -17,7 +17,7 @@ const ClothesGrid = ({ clothes, onPressItem, onPressAdd }) => {
     return (
       <View style={styles.clothingItem}>
         <ClothingItem
-          imageUrl={item.image_url}
+          imagePath={item.image_path}
           name={item.name}
           onPress={() => onPressItem(item)}
         />

@@ -4,6 +4,9 @@ import {
   Image, StatusBar, SafeAreaView, Modal, Animated, Dimensions
 } from 'react-native';
 import * as ImagePicker from 'expo-image-picker';
+import * as ImageManipulator from 'expo-image-manipulator';
+import * as FileSystem from 'expo-file-system';
+import { decode } from 'base64-arraybuffer';
 import { Picker } from '@react-native-picker/picker';
 import { supabase } from '../../services/supabase/auth';
 import { addClothing } from '../../services/supabase/data';
@@ -116,40 +119,117 @@ const AddClothesScreen = ({ navigation }) => {
     if (!selectedImage) return Alert.alert('Missing Image', 'Please select an image');
 
     try {
+      // 1. Get user
       const {
         data: { user },
         error: userError,
       } = await supabase.auth.getUser();
-      if (userError || !user) throw new Error("Authentication failed");
+      if (userError || !user) {
+        console.error('User error:', userError);
+        throw new Error("Authentication failed");
+      }
 
-      const fileExt = selectedImage.uri.split('.').pop();
+      // 2. Compress image
+      const manipResult = await ImageManipulator.manipulateAsync(
+        selectedImage.uri,
+        [{ resize: { width: 1024 } }],
+        { compress: 0.7, format: ImageManipulator.SaveFormat.JPEG }
+      );
+
+      console.log('Image compressed:', {
+        originalUri: selectedImage.uri,
+        compressedUri: manipResult.uri,
+        width: manipResult.width,
+        height: manipResult.height
+      });
+
+      // 3. Prepare storage file path
+      const fileExt = 'jpg';
       const fileName = `${Date.now()}.${fileExt}`;
       const filePath = `${user.id}/${fileName}`;
+      console.log('Prepared file path', filePath);
 
-      const response = await fetch(selectedImage.uri);
-      const blob = await response.blob();
+      // 4. Read file as base64 & convert to ArrayBuffer (React Native recommended way)
+      const base64 = await FileSystem.readAsStringAsync(manipResult.uri, {
+        encoding: FileSystem.EncodingType.Base64
+      });
 
-      const { error: uploadError } = await supabase.storage
+      const arrayBuffer = decode(base64);
+
+      console.log('ArrayBuffer prepared:', {
+        byteLength: arrayBuffer.byteLength
+      });
+
+      // 5. Upload to Supabase Storage with retry logic
+      let uploadError = null;
+      let retryCount = 0;
+      const maxRetries = 3;
+
+      while (retryCount < maxRetries) {
+        try {
+          const { data: uploadData, error: error } = await supabase.storage
+            .from('userclothes')
+            .upload(filePath, arrayBuffer, {
+              contentType: 'image/jpeg',
+              upsert: false,
+              cacheControl: '3600'
+            });
+
+          if (error) {
+            uploadError = error;
+            console.warn(`Upload attempt ${retryCount + 1} failed:`, error);
+            retryCount++;
+            if (retryCount < maxRetries) {
+              // Wait for 1 second before retrying
+              await new Promise(resolve => setTimeout(resolve, 1000));
+              continue;
+            }
+          } else {
+            console.log('Upload successful:', uploadData);
+            break;
+          }
+        } catch (err) {
+          uploadError = err;
+          console.warn(`Upload attempt ${retryCount + 1} failed with exception:`, err);
+          retryCount++;
+          if (retryCount < maxRetries) {
+            await new Promise(resolve => setTimeout(resolve, 1000));
+            continue;
+          }
+        }
+      }
+
+      if (uploadError) {
+        console.error('All upload attempts failed:', uploadError);
+        throw new Error(`Failed to upload image after ${maxRetries} attempts: ${uploadError.message}`);
+      }
+
+      // 6. Get signed URL
+      const { data: { signedUrl }, error: signedUrlError } = await supabase.storage
         .from('userclothes')
-        .upload(filePath, blob, {
-          contentType: selectedImage.mimeType || 'image/jpeg',
-        });
+        .createSignedUrl(filePath, 3600); // 1 hour expiry
 
-      if (uploadError) throw uploadError;
+      if (signedUrlError) {
+        console.error('Signed URL error:', signedUrlError);
+        throw new Error(`Failed to generate signed URL: ${signedUrlError.message}`);
+      }
 
-      // Get the public URL of the uploaded image
-      const { data: { publicUrl } } = supabase.storage
-        .from('userclothes')
-        .getPublicUrl(filePath);
-
-      const { error: dbError } = await addClothing(name, type, publicUrl);
-      if (dbError) throw dbError;
+      // 7. Save to database
+      const { error: dbError } = await addClothing(name, type, filePath);
+      if (dbError) {
+        console.error('Database error:', dbError);
+        throw new Error(`Failed to save clothing item: ${dbError.message}`);
+      }
 
       Alert.alert('Success', 'Clothing item saved!', [
         { text: 'OK', onPress: () => navigation.goBack() },
       ]);
     } catch (err) {
-      console.error('Upload error:', err);
+      console.error('Error in handleSave:', {
+        error: err,
+        message: err.message,
+        stack: err.stack
+      });
       Alert.alert('Error', err.message || 'Something went wrong');
     }
   };
