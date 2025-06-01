@@ -50,12 +50,13 @@ const styles = StyleSheet.create({
     paddingBottom: 20,
   },
   listContainer: {
-    paddingHorizontal: 16,
+    paddingHorizontal: 0,
   },
   clothingItem: {
-    width: '30%',
+    width: '32%',
     marginBottom: 20,
     alignItems: 'center',
+    height: 160,
   },
 });
 

@@ -67,8 +67,8 @@ const styles = StyleSheet.create({
     marginBottom: spacing.lg,
   },
   imageContainer: {
-    width: '100%',
-    aspectRatio: 1,
+    width: 120,
+    height: 120,
     backgroundColor: colors.background,
     borderRadius: layout.borderRadius,
     alignItems: 'center',
@@ -86,8 +86,8 @@ const styles = StyleSheet.create({
     borderColor: colors.primary,
   },
   image: {
-    width: '100%',
-    height: '100%',
+    width: 120,
+    height: 120,
     borderRadius: layout.borderRadius,
   },
   name: {

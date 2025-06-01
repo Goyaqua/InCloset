@@ -18,10 +18,10 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   addItemContainer: {
-    width: '100%',
-    aspectRatio: 1,
+    width: 120,
+    height: 120,
     backgroundColor: '#F8F8F8',
-    borderRadius: 12,
+    borderRadius: 16,
     alignItems: 'center',
     justifyContent: 'center',
     borderWidth: 2,
@@ -29,7 +29,7 @@ const styles = StyleSheet.create({
     borderStyle: 'dashed',
   },
   addItemIcon: {
-    fontSize: 32,
+    fontSize: 40,
     color: '#CCCCCC',
     fontWeight: '300',
   },

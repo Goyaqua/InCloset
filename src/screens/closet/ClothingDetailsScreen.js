@@ -7,16 +7,20 @@ import {
   TouchableOpacity,
   SafeAreaView,
   ScrollView,
+  ActivityIndicator,
 } from 'react-native';
 import { supabase } from '../../services/supabase/auth';
+import { Image as CachedImage } from 'expo-image';
 
 const ClothingDetailsScreen = ({ route, navigation }) => {
   const { item } = route.params;
   const [imageUrl, setImageUrl] = useState(null);
+  const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
     const getSignedUrl = async () => {
       try {
+        setIsLoading(true);
         const { data: { signedUrl }, error } = await supabase.storage
           .from('userclothes')
           .createSignedUrl(item.image_path, 3600); // 1 hour expiry
@@ -29,6 +33,8 @@ const ClothingDetailsScreen = ({ route, navigation }) => {
         setImageUrl(signedUrl);
       } catch (err) {
         console.error('Error in getSignedUrl:', err);
+      } finally {
+        setIsLoading(false);
       }
     };
 
@@ -39,17 +45,19 @@ const ClothingDetailsScreen = ({ route, navigation }) => {
     <SafeAreaView style={styles.container}>
       <ScrollView>
         <View style={styles.imageContainer}>
-          {imageUrl ? (
-            <Image
+          {isLoading ? (
+            <View style={styles.placeholderImage}>
+              <ActivityIndicator size="large" color="#6366F1" />
+            </View>
+          ) : imageUrl ? (
+            <CachedImage
               source={{ uri: imageUrl }}
               style={styles.image}
-              resizeMode="cover"
+              contentFit="cover"
+              transition={200}
+              cachePolicy="memory-disk"
             />
-          ) : (
-            <View style={styles.placeholderImage}>
-              <Text>Loading image...</Text>
-            </View>
-          )}
+          ) : null}
         </View>
 
         <View style={styles.detailsContainer}>

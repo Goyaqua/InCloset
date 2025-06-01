@@ -102,7 +102,49 @@ const ClosetScreen = () => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: colors.background,
+    backgroundColor: '#ffffff',
+  },
+  gridContainer: {
+    flex: 1,
+    padding: 10,
+  },
+  grid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    justifyContent: 'space-between',
+  },
+  itemContainer: {
+    width: '47%',
+    marginBottom: 15,
+    borderRadius: 12,
+    backgroundColor: '#ffffff',
+    shadowColor: '#000',
+    shadowOffset: {
+      width: 0,
+      height: 2,
+    },
+    shadowOpacity: 0.1,
+    shadowRadius: 3.84,
+    elevation: 5,
+  },
+  itemImage: {
+    width: '100%',
+    height: 200,
+    borderTopLeftRadius: 12,
+    borderTopRightRadius: 12,
+  },
+  itemInfo: {
+    padding: 12,
+  },
+  itemName: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#000000',
+    marginBottom: 4,
+  },
+  itemType: {
+    fontSize: 14,
+    color: '#6B7280',
   },
 });
 
