@@ -39,14 +39,65 @@ export const addClothing = async (name, type, filePath) => {
   }
 };
 
-export const deleteClothing = async (id) => {
+export const updateClothing = async (id, name, type) => {
   try {
-    const { error } = await supabase
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) throw new Error('User not authenticated');
+
+    const { data, error } = await supabase
       .from('clothes')
-      .delete()
-      .eq('id', id);
+      .update({ 
+        name,
+        type
+      })
+      .eq('id', id)
+      .eq('user_id', user.id) // Ensure user can only update their own items
+      .select()
+      .single();
     
     if (error) throw error;
+    return { data, error: null };
+  } catch (error) {
+    return { data: null, error };
+  }
+};
+
+export const deleteClothing = async (id) => {
+  try {
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) throw new Error('User not authenticated');
+
+    // First get the clothing item to get the image path for cleanup
+    const { data: clothing, error: fetchError } = await supabase
+      .from('clothes')
+      .select('image_path')
+      .eq('id', id)
+      .eq('user_id', user.id)
+      .single();
+
+    if (fetchError) throw fetchError;
+
+    // Delete the clothing item from database
+    const { error: deleteError } = await supabase
+      .from('clothes')
+      .delete()
+      .eq('id', id)
+      .eq('user_id', user.id); // Ensure user can only delete their own items
+    
+    if (deleteError) throw deleteError;
+
+    // Optionally delete the image from storage
+    if (clothing?.image_path) {
+      const { error: storageError } = await supabase.storage
+        .from('userclothes')
+        .remove([clothing.image_path]);
+      
+      if (storageError) {
+        console.warn('Failed to delete image from storage:', storageError);
+        // Don't throw error for storage cleanup failure
+      }
+    }
+
     return { error: null };
   } catch (error) {
     return { error };

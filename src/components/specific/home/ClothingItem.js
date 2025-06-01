@@ -42,7 +42,7 @@ const ClothingItem = ({ imagePath, name, onPress, selected }) => {
           <Image
             source={{ uri: imageUrl }}
             style={styles.image}
-            resizeMode="cover"
+            resizeMode="contain"
           />
         )}
         {selected && (
@@ -62,13 +62,14 @@ const ClothingItem = ({ imagePath, name, onPress, selected }) => {
 
 const styles = StyleSheet.create({
   container: {
-    width: '31%', // Allows 3 items per row with spacing
+    width: '100%',
     alignItems: 'center',
-    marginBottom: spacing.lg,
+    marginBottom: spacing.sm,
   },
   imageContainer: {
-    width: 120,
-    height: 120,
+    width: '100%',
+    aspectRatio: 1,
+    maxWidth: 120,
     backgroundColor: colors.background,
     borderRadius: layout.borderRadius,
     alignItems: 'center',
@@ -86,8 +87,8 @@ const styles = StyleSheet.create({
     borderColor: colors.primary,
   },
   image: {
-    width: 120,
-    height: 120,
+    width: '100%',
+    height: '100%',
     borderRadius: layout.borderRadius,
   },
   name: {

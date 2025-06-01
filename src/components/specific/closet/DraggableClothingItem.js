@@ -1,4 +1,4 @@
-import React, { useRef } from 'react';
+import React, { useRef, useState, useEffect } from 'react';
 import {
   View,
   StyleSheet,
@@ -8,10 +8,37 @@ import {
   Text,
 } from 'react-native';
 import { colors, typography, layout } from '../../../styles/theme';
+import { supabase } from '../../../services/supabase/auth';
 
-const DraggableClothingItem = ({ imageUrl, name, initialPosition }) => {
+const DraggableClothingItem = ({ imagePath, name, initialPosition }) => {
   const pan = useRef(new Animated.ValueXY(initialPosition)).current;
   const scale = useRef(new Animated.Value(1)).current;
+  const [imageUrl, setImageUrl] = useState(null);
+
+  useEffect(() => {
+    const getSignedUrl = async () => {
+      try {
+        const { data: { signedUrl }, error } = await supabase.storage
+          .from('userclothes')
+          .createSignedUrl(imagePath, 3600); // 1 hour expiry
+        
+        if (error) {
+          console.error('Error getting signed URL:', error);
+          return;
+        }
+        
+        if (signedUrl) {
+          setImageUrl(signedUrl);
+        }
+      } catch (error) {
+        console.error('Error in getSignedUrl:', error);
+      }
+    };
+
+    if (imagePath) {
+      getSignedUrl();
+    }
+  }, [imagePath]);
 
   const panResponder = useRef(
     PanResponder.create({
@@ -63,11 +90,13 @@ const DraggableClothingItem = ({ imageUrl, name, initialPosition }) => {
       {...panResponder.panHandlers}
     >
       <View style={styles.imageContainer}>
-        <Image
-          source={{ uri: imageUrl }}
-          style={styles.image}
-          resizeMode="cover"
-        />
+        {imageUrl && (
+          <Image
+            source={{ uri: imageUrl }}
+            style={styles.image}
+            resizeMode="cover"
+          />
+        )}
       </View>
       <Text style={styles.name} numberOfLines={1}>
         {name}

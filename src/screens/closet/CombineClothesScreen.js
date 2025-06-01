@@ -1,4 +1,4 @@
-import React, { useState, useRef } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   View,
   Text,
@@ -7,88 +7,50 @@ import {
   TouchableOpacity,
   Alert,
   Modal,
-  Animated,
-  Dimensions,
   ScrollView,
+  Image,
+  TextInput,
 } from 'react-native';
 import { supabase } from '../../services/supabase/auth';
 import { colors, spacing, typography } from '../../styles/theme';
 import ClothingItem from '../../components/specific/home/ClothingItem';
-import DraggableClothingItem from '../../components/specific/closet/DraggableClothingItem';
-import CategoryFilter from '../../components/specific/closet/CategoryFilter';
-import SearchBar from '../../components/specific/closet/SearchBar';
-import { Button } from '../../components/common/Button';
 import MaterialCommunityIcons from 'react-native-vector-icons/MaterialCommunityIcons';
 
-const SCREEN_HEIGHT = Dimensions.get('window').height;
-const SCREEN_WIDTH = Dimensions.get('window').width;
-const MODAL_HEIGHT = SCREEN_HEIGHT * 0.7;
-const ITEM_WIDTH = 100; // Width of draggable items
-const ITEM_SPACING = 20; // Spacing between items
+const clothingCategories = [
+  { id: 'accessories', label: 'Hat/Accessories', icon: 'hat-fedora', types: ['accessories'] },
+  { id: 'shirt', label: 'Top', icon: 'tshirt-crew-outline', types: ['shirt', 'jacket', 'dress'] },
+  { id: 'pants', label: 'Bottom', icon: 'human-handsdown', types: ['pants'] },
+  { id: 'shoes', label: 'Shoes', icon: 'shoe-sneaker', types: ['shoes'] },
+];
 
 const CombineClothesScreen = () => {
-  const [clothes, setClothes] = useState([]);
-  const [selectedItems, setSelectedItems] = useState([]);
-  const [showPicker, setShowPicker] = useState(false);
-  const [searchQuery, setSearchQuery] = useState('');
-  const [activeCategory, setActiveCategory] = useState('ALL');
-  const [canvasItems, setCanvasItems] = useState([]);
-  
-  const slideAnim = useRef(new Animated.Value(SCREEN_HEIGHT)).current;
-  const backdropOpacity = useRef(new Animated.Value(0)).current;
+  const [outfitName, setOutfitName] = useState('My New Outfit');
+  const [isEditingName, setIsEditingName] = useState(false);
+  const [selectedItems, setSelectedItems] = useState({
+    accessories: null,
+    shirt: null,
+    pants: null,
+    shoes: null,
+  });
+  const [categoryItems, setCategoryItems] = useState({
+    accessories: [],
+    shirt: [],
+    pants: [],
+    shoes: [],
+  });
+  const [currentIndices, setCurrentIndices] = useState({
+    accessories: 0,
+    shirt: 0,
+    pants: 0,
+    shoes: 0,
+  });
+  const [showItemPicker, setShowItemPicker] = useState(false);
+  const [activeCategory, setActiveCategory] = useState(null);
+  const [isSaving, setIsSaving] = useState(false);
 
-  const calculateInitialPosition = (index) => {
-    const itemsPerRow = Math.floor((SCREEN_WIDTH - spacing.md * 2) / (ITEM_WIDTH + ITEM_SPACING));
-    const row = Math.floor(index / itemsPerRow);
-    const col = index % itemsPerRow;
-    
-    return {
-      x: spacing.md + col * (ITEM_WIDTH + ITEM_SPACING),
-      y: spacing.md + row * (ITEM_WIDTH + ITEM_SPACING),
-    };
-  };
-
-  const showBottomSheet = () => {
-    setShowPicker(true);
+  useEffect(() => {
     fetchClothes();
-    Animated.parallel([
-      Animated.timing(slideAnim, {
-        toValue: 0,
-        duration: 300,
-        useNativeDriver: true,
-      }),
-      Animated.timing(backdropOpacity, {
-        toValue: 1,
-        duration: 300,
-        useNativeDriver: true,
-      }),
-    ]).start();
-  };
-
-  const hideBottomSheet = (shouldAddItems = false) => {
-    Animated.parallel([
-      Animated.timing(slideAnim, {
-        toValue: SCREEN_HEIGHT,
-        duration: 300,
-        useNativeDriver: true,
-      }),
-      Animated.timing(backdropOpacity, {
-        toValue: 0,
-        duration: 300,
-        useNativeDriver: true,
-      }),
-    ]).start(() => {
-      setShowPicker(false);
-      if (shouldAddItems && selectedItems.length > 0) {
-        const newItems = selectedItems.map((item) => ({
-          ...item,
-          position: calculateInitialPosition(canvasItems.length),
-        }));
-        setCanvasItems([...canvasItems, ...newItems]);
-        setSelectedItems([]);
-      }
-    });
-  };
+  }, []);
 
   const fetchClothes = async () => {
     try {
@@ -98,56 +60,105 @@ const CombineClothesScreen = () => {
         return;
       }
 
-      let query = supabase
+      const { data, error } = await supabase
         .from('clothes')
         .select('*')
-        .eq('user_id', user.id);
+        .eq('user_id', user.id)
+        .order('created_at', { ascending: false });
 
-      if (activeCategory !== 'ALL') {
-        const categoryMap = {
-          'HATS': 'hat',
-          'TOPS': 'top',
-          'BOTTOMS': 'bottom',
-          'SHOES': 'shoe',
-          'ACCESSORIES': 'accessories'
-        };
-        query = query.eq('category', categoryMap[activeCategory]);
-      }
-
-      const { data, error } = await query;
       if (error) throw error;
 
-      const filteredData = data.filter(item => 
-        item.name.toLowerCase().includes(searchQuery.toLowerCase())
-      );
+      // Group clothes by category
+      const groupedItems = {
+        accessories: [],
+        shirt: [],
+        pants: [],
+        shoes: [],
+      };
 
-      setClothes(filteredData || []);
+      data.forEach(item => {
+        clothingCategories.forEach(category => {
+          if (category.types.includes(item.type)) {
+            groupedItems[category.id].push(item);
+          }
+        });
+      });
+
+      setCategoryItems(groupedItems);
+
+      // Set initial selected items to first item in each category
+      const initialSelected = {};
+      Object.keys(groupedItems).forEach(categoryId => {
+        if (groupedItems[categoryId].length > 0) {
+          initialSelected[categoryId] = groupedItems[categoryId][0];
+        } else {
+          initialSelected[categoryId] = null;
+        }
+      });
+      setSelectedItems(initialSelected);
+
     } catch (error) {
+      console.error('Error fetching clothes:', error);
       Alert.alert('Error', error.message || 'Error fetching clothes');
     }
   };
 
-  const toggleItemSelection = (item) => {
-    if (selectedItems.find(selected => selected.id === item.id)) {
-      setSelectedItems(selectedItems.filter(selected => selected.id !== item.id));
+  const navigateItem = (categoryId, direction) => {
+    const items = categoryItems[categoryId];
+    if (items.length === 0) return;
+
+    const currentIndex = currentIndices[categoryId];
+    let newIndex;
+
+    if (direction === 'left') {
+      newIndex = currentIndex === 0 ? items.length - 1 : currentIndex - 1;
     } else {
-      setSelectedItems([...selectedItems, item]);
+      newIndex = currentIndex === items.length - 1 ? 0 : currentIndex + 1;
     }
+
+    setCurrentIndices(prev => ({
+      ...prev,
+      [categoryId]: newIndex
+    }));
+
+    setSelectedItems(prev => ({
+      ...prev,
+      [categoryId]: items[newIndex]
+    }));
   };
 
-  const handleSearch = () => {
-    fetchClothes();
+  const openItemPicker = (categoryId) => {
+    setActiveCategory(categoryId);
+    setShowItemPicker(true);
   };
 
-  const isItemSelected = (item) => {
-    return selectedItems.some(selected => selected.id === item.id);
+  const selectItemFromPicker = (item) => {
+    if (activeCategory) {
+      setSelectedItems(prev => ({
+        ...prev,
+        [activeCategory]: item
+      }));
+
+      // Update current index
+      const categoryIndex = categoryItems[activeCategory].findIndex(i => i.id === item.id);
+      setCurrentIndices(prev => ({
+        ...prev,
+        [activeCategory]: categoryIndex
+      }));
+    }
+    setShowItemPicker(false);
+    setActiveCategory(null);
   };
 
   const saveOutfit = async () => {
-    if (canvasItems.length === 0) {
-      Alert.alert('Error', 'Please add some items to your outfit');
+    const selectedItemsList = Object.values(selectedItems).filter(item => item !== null);
+    
+    if (selectedItemsList.length === 0) {
+      Alert.alert('Error', 'Please select at least one clothing item');
       return;
     }
+
+    setIsSaving(true);
 
     try {
       const { data: { user } } = await supabase.auth.getUser();
@@ -156,118 +167,233 @@ const CombineClothesScreen = () => {
         return;
       }
 
-      const { data, error } = await supabase
+      // Create outfit
+      const { data: outfit, error: outfitError } = await supabase
         .from('outfits')
         .insert([{
-          name: 'New Outfit',
-          clothes_ids: canvasItems.map(item => item.id),
+          name: outfitName,
           user_id: user.id,
           created_at: new Date().toISOString()
-        }]);
+        }])
+        .select()
+        .single();
 
-      if (error) throw error;
-      
-      Alert.alert('Success', 'Outfit saved successfully!');
-      setCanvasItems([]);
+      if (outfitError) throw outfitError;
+
+      // Create outfit items
+      const outfitItems = selectedItemsList.map(item => ({
+        outfit_id: outfit.id,
+        clothing_id: item.id
+      }));
+
+      const { error: itemsError } = await supabase
+        .from('outfit_items')
+        .insert(outfitItems);
+
+      if (itemsError) throw itemsError;
+
+      Alert.alert('Success', 'Outfit saved successfully!', [
+        { text: 'OK', onPress: () => resetOutfit() }
+      ]);
+
     } catch (error) {
+      console.error('Error saving outfit:', error);
       Alert.alert('Error', error.message || 'Error saving outfit');
+    } finally {
+      setIsSaving(false);
     }
+  };
+
+  const resetOutfit = () => {
+    setOutfitName('My New Outfit');
+    setCurrentIndices({
+      accessories: 0,
+      shirt: 0,
+      pants: 0,
+      shoes: 0,
+    });
+    // Reset to first items
+    const initialSelected = {};
+    Object.keys(categoryItems).forEach(categoryId => {
+      if (categoryItems[categoryId].length > 0) {
+        initialSelected[categoryId] = categoryItems[categoryId][0];
+      } else {
+        initialSelected[categoryId] = null;
+      }
+    });
+    setSelectedItems(initialSelected);
+  };
+
+  const renderClothingSlot = (category) => {
+    const selectedItem = selectedItems[category.id];
+    const items = categoryItems[category.id];
+    const hasItems = items.length > 0;
+
+    return (
+      <View key={category.id} style={styles.clothingSlot}>
+        <View style={styles.slotContainer}>
+          <TouchableOpacity
+            style={[styles.navButton, !hasItems && styles.navButtonDisabled]}
+            onPress={() => navigateItem(category.id, 'left')}
+            disabled={!hasItems}
+          >
+            <MaterialCommunityIcons name="chevron-left" size={24} color={hasItems ? colors.primary : colors.textSecondary} />
+          </TouchableOpacity>
+
+          <TouchableOpacity 
+            style={styles.itemContainer}
+            onPress={() => hasItems && openItemPicker(category.id)}
+          >
+            {selectedItem ? (
+              <ClothingItemImage imagePath={selectedItem.image_path} />
+            ) : (
+              <View style={styles.emptySlot}>
+                <MaterialCommunityIcons name={category.icon} size={40} color={colors.textSecondary} />
+              </View>
+            )}
+          </TouchableOpacity>
+
+          <TouchableOpacity
+            style={[styles.navButton, !hasItems && styles.navButtonDisabled]}
+            onPress={() => navigateItem(category.id, 'right')}
+            disabled={!hasItems}
+          >
+            <MaterialCommunityIcons name="chevron-right" size={24} color={hasItems ? colors.primary : colors.textSecondary} />
+          </TouchableOpacity>
+        </View>
+
+        <Text style={styles.itemName}>
+          {selectedItem ? selectedItem.name : category.label}
+        </Text>
+      </View>
+    );
   };
 
   return (
     <SafeAreaView style={styles.container}>
-      {canvasItems.length === 0 ? (
-        <TouchableOpacity style={styles.emptyCanvas} onPress={showBottomSheet}>
-          <View style={styles.addButton}>
-            <MaterialCommunityIcons name="plus" size={40} color={colors.primary} />
-          </View>
-          <Text style={styles.emptyText}>Tap to add clothes</Text>
-        </TouchableOpacity>
-      ) : (
-        <View style={styles.canvasContainer}>
-          <View style={styles.canvas}>
-            {canvasItems.map((item, index) => (
-              <DraggableClothingItem
-                key={`${item.id}-${index}`}
-                imageUrl={item.image_url}
-                name={item.name}
-                initialPosition={item.position}
-              />
-            ))}
-          </View>
-          <TouchableOpacity 
-            style={styles.floatingButton}
-            onPress={showBottomSheet}
-          >
-            <MaterialCommunityIcons name="plus" size={30} color="#FFF" />
+      <ScrollView style={styles.content}>
+        <Text style={styles.title}>CREATE YOUR OUTFIT</Text>
+        
+        <View style={styles.outfitNameContainer}>
+          <Text style={styles.outfitNameLabel}>OUTFIT NAME</Text>
+          <TouchableOpacity onPress={() => setIsEditingName(true)}>
+            <MaterialCommunityIcons name="pencil" size={16} color={colors.primary} />
           </TouchableOpacity>
         </View>
-      )}
 
-      <View style={styles.footer}>
-        <Button
-          title="Save Outfit"
+        {isEditingName ? (
+          <TextInput
+            style={styles.outfitNameInput}
+            value={outfitName}
+            onChangeText={setOutfitName}
+            onBlur={() => setIsEditingName(false)}
+            onSubmitEditing={() => setIsEditingName(false)}
+            autoFocus
+            selectTextOnFocus
+          />
+        ) : (
+          <TouchableOpacity onPress={() => setIsEditingName(true)}>
+            <Text style={styles.outfitNameText}>{outfitName}</Text>
+          </TouchableOpacity>
+        )}
+
+        <View style={styles.slotsContainer}>
+          {clothingCategories.map(category => renderClothingSlot(category))}
+        </View>
+      </ScrollView>
+
+      <View style={styles.buttonContainer}>
+        <TouchableOpacity style={styles.cancelButton} onPress={resetOutfit}>
+          <Text style={styles.cancelButtonText}>CANCEL</Text>
+        </TouchableOpacity>
+        <TouchableOpacity 
+          style={[styles.saveButton, isSaving && styles.saveButtonDisabled]} 
           onPress={saveOutfit}
-          disabled={canvasItems.length === 0}
-        />
+          disabled={isSaving}
+        >
+          <Text style={styles.saveButtonText}>
+            {isSaving ? 'SAVING...' : 'SAVE'}
+          </Text>
+        </TouchableOpacity>
       </View>
 
-      <Modal visible={showPicker} transparent animationType="none">
-        <Animated.View style={[styles.modalContainer, { opacity: backdropOpacity }]}>
-          <TouchableOpacity
-            style={styles.modalBackdrop}
-            activeOpacity={1}
-            onPress={() => hideBottomSheet()}
-          />
-          <Animated.View 
-            style={[
-              styles.modalContent, 
-              { transform: [{ translateY: slideAnim }] }
-            ]}
-          >
-            <View style={styles.modalHeader}>
-              <View style={styles.modalHeaderTop}>
-                <TouchableOpacity onPress={() => hideBottomSheet()}>
-                  <Text style={styles.modalButtonText}>Cancel</Text>
-                </TouchableOpacity>
-                <Text style={styles.modalTitle}>
-                  Select Items ({selectedItems.length})
-                </Text>
-                <TouchableOpacity onPress={() => hideBottomSheet(true)}>
-                  <Text style={[styles.modalButtonText, styles.modalDoneButton]}>
-                    Done
-                  </Text>
-                </TouchableOpacity>
-              </View>
-              <SearchBar 
-                value={searchQuery}
-                onChangeText={setSearchQuery}
-                onSearchPress={handleSearch}
-              />
-              <CategoryFilter 
-                activeCategory={activeCategory}
-                onSelectCategory={setActiveCategory}
-              />
-            </View>
+      {/* Item Picker Modal */}
+      <Modal visible={showItemPicker} animationType="slide">
+        <SafeAreaView style={styles.modalContainer}>
+          <View style={styles.modalHeader}>
+            <TouchableOpacity onPress={() => setShowItemPicker(false)}>
+              <Text style={styles.modalButtonText}>Cancel</Text>
+            </TouchableOpacity>
+            <Text style={styles.modalTitle}>
+              Select {activeCategory && clothingCategories.find(c => c.id === activeCategory)?.label}
+            </Text>
+            <TouchableOpacity onPress={() => setShowItemPicker(false)}>
+              <Text style={[styles.modalButtonText, styles.modalDoneButton]}>Done</Text>
+            </TouchableOpacity>
+          </View>
 
-            <ScrollView style={styles.gridContainer}>
-              <View style={styles.grid}>
-                {clothes.map((item) => (
-                  <View key={item.id} style={styles.gridItem}>
-                    <ClothingItem
-                      imageUrl={item.image_url}
-                      name={item.name}
-                      onPress={() => toggleItemSelection(item)}
-                      selected={isItemSelected(item)}
-                    />
-                  </View>
-                ))}
-              </View>
-            </ScrollView>
-          </Animated.View>
-        </Animated.View>
+          <ScrollView style={styles.modalContent}>
+            <View style={styles.modalGrid}>
+              {activeCategory && categoryItems[activeCategory].map((item) => (
+                <TouchableOpacity 
+                  key={item.id} 
+                  style={styles.modalGridItem}
+                  onPress={() => selectItemFromPicker(item)}
+                >
+                  <ClothingItem
+                    imagePath={item.image_path}
+                    name={item.name}
+                    selected={selectedItems[activeCategory]?.id === item.id}
+                  />
+                </TouchableOpacity>
+              ))}
+            </View>
+          </ScrollView>
+        </SafeAreaView>
       </Modal>
     </SafeAreaView>
+  );
+};
+
+// Helper component for displaying clothing images
+const ClothingItemImage = ({ imagePath }) => {
+  const [imageUrl, setImageUrl] = useState(null);
+
+  useEffect(() => {
+    const getSignedUrl = async () => {
+      try {
+        const { data: { signedUrl }, error } = await supabase.storage
+          .from('userclothes')
+          .createSignedUrl(imagePath, 3600);
+        
+        if (error) {
+          console.error('Error getting signed URL:', error);
+          return;
+        }
+        
+        if (signedUrl) {
+          setImageUrl(signedUrl);
+        }
+      } catch (error) {
+        console.error('Error in getSignedUrl:', error);
+      }
+    };
+
+    if (imagePath) {
+      getSignedUrl();
+    }
+  }, [imagePath]);
+
+  return (
+    <View style={styles.imageContainer}>
+      {imageUrl && (
+        <Image
+          source={{ uri: imageUrl }}
+          style={styles.itemImage}
+          resizeMode="contain"
+        />
+      )}
+    </View>
   );
 };
 
@@ -276,100 +402,182 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: colors.background,
   },
-  emptyCanvas: {
+  content: {
     flex: 1,
+    padding: spacing.lg,
+  },
+  title: {
+    fontSize: 18,
+    fontWeight: '600',
+    textAlign: 'center',
+    color: '#000000',
+    marginBottom: spacing.xl,
+  },
+  outfitNameContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
     justifyContent: 'center',
+    marginBottom: spacing.sm,
+  },
+  outfitNameLabel: {
+    fontSize: 14,
+    fontWeight: '500',
+    color: '#666666',
+    marginRight: spacing.sm,
+  },
+  outfitNameInput: {
+    fontSize: 16,
+    fontWeight: '500',
+    color: '#000000',
+    textAlign: 'center',
+    borderBottomWidth: 1,
+    borderBottomColor: colors.primary,
+    padding: spacing.sm,
+    minWidth: 150,
+  },
+  outfitNameText: {
+    fontSize: 16,
+    fontWeight: '500',
+    color: '#000000',
+    textAlign: 'center',
+    marginBottom: spacing.xl,
+  },
+  slotsContainer: {
+    flex: 1,
+    justifyContent: 'space-around',
+    paddingVertical: spacing.lg,
+  },
+  clothingSlot: {
+    marginBottom: spacing.xl,
     alignItems: 'center',
   },
-  addButton: {
-    width: 80,
-    height: 80,
-    borderRadius: 40,
-    backgroundColor: colors.primary + '20',
-    justifyContent: 'center',
+  slotContainer: {
+    flexDirection: 'row',
     alignItems: 'center',
-    marginBottom: spacing.md,
-  },
-  emptyText: {
-    ...typography.subtitle,
-    color: colors.textSecondary,
-  },
-  canvasContainer: {
-    flex: 1,
-  },
-  canvas: {
-    flex: 1,
-    backgroundColor: colors.background,
-  },
-  floatingButton: {
-    position: 'absolute',
-    bottom: spacing.xl,
-    right: spacing.xl,
-    width: 56,
-    height: 56,
-    borderRadius: 28,
-    backgroundColor: colors.primary,
     justifyContent: 'center',
-    alignItems: 'center',
-    elevation: 4,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.25,
-    shadowRadius: 4,
+    width: '100%',
   },
-  footer: {
+  navButton: {
     padding: spacing.md,
+    width: 50,
+    height: 50,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  navButtonDisabled: {
+    opacity: 0.3,
+  },
+  itemContainer: {
+    width: 150,
+    height: 150,
+    marginHorizontal: spacing.lg,
+    justifyContent: 'center',
+    alignItems: 'center',
+    backgroundColor: '#F8F9FA',
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: '#E9ECEF',
+  },
+  emptySlot: {
+    width: '100%',
+    height: '100%',
+    justifyContent: 'center',
+    alignItems: 'center',
+    backgroundColor: '#F8F9FA',
+  },
+  itemName: {
+    fontSize: 14,
+    fontWeight: '500',
+    color: '#000000',
+    textAlign: 'center',
+    marginTop: spacing.sm,
+  },
+  buttonContainer: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    paddingHorizontal: spacing.lg,
+    paddingBottom: spacing.xl,
+    gap: spacing.md,
+  },
+  cancelButton: {
+    flex: 1,
+    paddingVertical: 16,
+    backgroundColor: '#EC4899',
+    borderRadius: 12,
+    alignItems: 'center',
+  },
+  cancelButtonText: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#FFFFFF',
+    letterSpacing: 0.5,
+  },
+  saveButton: {
+    flex: 1,
+    paddingVertical: 16,
+    backgroundColor: '#6366F1',
+    borderRadius: 12,
+    alignItems: 'center',
+  },
+  saveButtonDisabled: {
+    backgroundColor: '#D1D5DB',
+    opacity: 0.6,
+  },
+  saveButtonText: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#FFFFFF',
+    letterSpacing: 0.5,
   },
   modalContainer: {
     flex: 1,
-    justifyContent: 'flex-end',
-  },
-  modalBackdrop: {
-    position: 'absolute',
-    top: 0,
-    left: 0,
-    right: 0,
-    bottom: 0,
-    backgroundColor: 'rgba(0, 0, 0, 0.5)',
-  },
-  modalContent: {
-    height: MODAL_HEIGHT,
     backgroundColor: colors.background,
-    borderTopLeftRadius: 20,
-    borderTopRightRadius: 20,
   },
   modalHeader: {
-    borderBottomWidth: 1,
-    borderBottomColor: colors.border,
-  },
-  modalHeaderTop: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    padding: spacing.md,
-  },
-  modalTitle: {
-    ...typography.subtitle,
-    fontWeight: '600',
+    borderBottomWidth: 1,
+    borderBottomColor: '#E5E7EB',
+    paddingHorizontal: spacing.lg,
+    paddingVertical: spacing.md,
   },
   modalButtonText: {
     fontSize: 16,
     color: colors.primary,
   },
+  modalTitle: {
+    fontSize: 18,
+    fontWeight: '600',
+    color: '#000000',
+  },
   modalDoneButton: {
     fontWeight: '600',
   },
-  gridContainer: {
+  modalContent: {
     flex: 1,
+    padding: spacing.md,
   },
-  grid: {
+  modalGrid: {
     flexDirection: 'row',
     flexWrap: 'wrap',
-    padding: spacing.sm,
+    justifyContent: 'space-around',
   },
-  gridItem: {
-    width: '33.33%',
-    padding: spacing.xs,
+  modalGridItem: {
+    width: '30%',
+    marginBottom: spacing.lg,
+    alignItems: 'center',
+  },
+  imageContainer: {
+    width: '100%',
+    height: '100%',
+    borderRadius: 8,
+    overflow: 'hidden',
+    backgroundColor: '#FFFFFF',
+  },
+  itemImage: {
+    width: '100%',
+    height: '100%',
   },
 });
 
