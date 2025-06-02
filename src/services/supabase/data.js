@@ -137,10 +137,37 @@ export const getOutfits = async () => {
 
 export const addOutfit = async (name, clothingIds) => {
   try {
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) throw new Error('User not authenticated');
+
+    // Try to ensure user exists in users table if needed
+    try {
+      const { error: userInsertError } = await supabase
+        .from('users')
+        .insert([{ 
+          id: user.id,
+          email: user.email,
+          created_at: new Date().toISOString()
+        }])
+        .select()
+        .single();
+      
+      // Ignore error if user already exists
+      if (userInsertError && !userInsertError.message.includes('duplicate key')) {
+        console.warn('Could not insert user:', userInsertError);
+      }
+    } catch (userError) {
+      console.warn('Users table might not exist or user already exists:', userError);
+    }
+
     // First create the outfit
     const { data: outfit, error: outfitError } = await supabase
       .from('outfits')
-      .insert([{ name }])
+      .insert([{ 
+        name,
+        user_id: user.id,
+        created_at: new Date().toISOString()
+      }])
       .select()
       .single();
     

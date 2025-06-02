@@ -12,6 +12,7 @@ import {
   TextInput,
 } from 'react-native';
 import { supabase } from '../../services/supabase/auth';
+import { addOutfit } from '../../services/supabase/data';
 import { colors, spacing, typography } from '../../styles/theme';
 import ClothingItem from '../../components/specific/home/ClothingItem';
 import MaterialCommunityIcons from 'react-native-vector-icons/MaterialCommunityIcons';
@@ -21,7 +22,7 @@ const clothingCategories = [
   { id: 'shirt', label: 'Top', icon: 'tshirt-crew-outline', types: ['shirt', 'jacket', 'dress'] },
   { id: 'pants', label: 'Bottom', icon: 'human-handsdown', types: ['pants'] },
   { id: 'shoes', label: 'Shoes', icon: 'shoe-sneaker', types: ['shoes'] },
-];
+]; 
 
 const CombineClothesScreen = () => {
   const [outfitName, setOutfitName] = useState('My New Outfit');
@@ -167,30 +168,11 @@ const CombineClothesScreen = () => {
         return;
       }
 
-      // Create outfit
-      const { data: outfit, error: outfitError } = await supabase
-        .from('outfits')
-        .insert([{
-          name: outfitName,
-          user_id: user.id,
-          created_at: new Date().toISOString()
-        }])
-        .select()
-        .single();
+      // Use the existing addOutfit function from data.js
+      const clothingIds = selectedItemsList.map(item => item.id);
+      const { data: outfit, error } = await addOutfit(outfitName, clothingIds);
 
-      if (outfitError) throw outfitError;
-
-      // Create outfit items
-      const outfitItems = selectedItemsList.map(item => ({
-        outfit_id: outfit.id,
-        clothing_id: item.id
-      }));
-
-      const { error: itemsError } = await supabase
-        .from('outfit_items')
-        .insert(outfitItems);
-
-      if (itemsError) throw itemsError;
+      if (error) throw error;
 
       Alert.alert('Success', 'Outfit saved successfully!', [
         { text: 'OK', onPress: () => resetOutfit() }
