@@ -28,19 +28,19 @@ const ClosetScreen = () => {
       if (activeCategory !== 'ALL') {
         // Convert category names to match database values
         const categoryMap = {
-          'HATS': 'hat',
-          'TOPS': 'top',
-          'BOTTOMS': 'bottom',
-          'SHOES': 'shoe'
+          'HATS': 'accessories',
+          'TOPS': 'shirt',
+          'BOTTOMS': 'pants',
+          'SHOES': 'shoes'
         };
-        query = query.eq('category', categoryMap[activeCategory]);
+        query = query.eq('type', categoryMap[activeCategory]);
       }
 
       const { data, error } = await query;
       if (error) throw error;
 
       // Filter by search query
-      const filteredData = data.filter(item => 
+      const filteredData = data.filter(item =>
         item.name.toLowerCase().includes(searchQuery.toLowerCase())
       );
 
@@ -71,16 +71,16 @@ const ClosetScreen = () => {
 
   return (
     <SafeAreaView style={styles.container}>
-      <SearchBar 
+      <SearchBar
         value={searchQuery}
         onChangeText={setSearchQuery}
         onSearchPress={handleSearch}
       />
-      <CategoryFilter 
+      <CategoryFilter
         activeCategory={activeCategory}
         onSelectCategory={setActiveCategory}
       />
-      <ClothesGrid 
+      <ClothesGrid
         clothes={clothes}
         onPressItem={handlePressItem}
         onPressAdd={handleAddClothes}

@@ -17,14 +17,24 @@
     "@react-navigation/stack": "^7.3.3",
     "@supabase/supabase-js": "2.38.4",
     "expo": "~53.0.9",
+<<<<<<< Updated upstream
+=======
+    "expo-image": "~2.1.7",
+    "expo-image-manipulator": "~13.1.7",
+    "expo-image-picker": "^16.1.4",
+>>>>>>> Stashed changes
     "expo-splash-screen": "~0.30.8",
     "expo-status-bar": "~2.2.3",
     "react": "19.0.0",
     "react-native": "0.79.2",
     "react-native-safe-area-context": "^5.4.1",
     "react-native-screens": "^4.11.1",
+<<<<<<< Updated upstream
     "react-native-vector-icons": "^10.2.0",
     "expo-image-picker": "~16.1.4"
+=======
+    "react-native-vector-icons": "^10.2.0"
+>>>>>>> Stashed changes
   },
   "devDependencies": {
     "@babel/core": "^7.20.0"
