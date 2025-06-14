@@ -13,12 +13,6 @@ const AllClothesSection = ({ clothes, onItemPress, onSeeAllPress }) => {
 
   return (
     <View style={styles.container}>
-      <View style={styles.header}>
-        <Text style={styles.title}>All Clothes</Text>
-        <TouchableOpacity onPress={onSeeAllPress}>
-          <Text style={styles.seeAll}>See All</Text>
-        </TouchableOpacity>
-      </View>
       <FlatList
         data={clothes.slice(0, 6)} // Show only first 6 items
         renderItem={renderItem}
@@ -34,13 +28,6 @@ const AllClothesSection = ({ clothes, onItemPress, onSeeAllPress }) => {
 const styles = StyleSheet.create({
   container: {
     paddingVertical: spacing.lg,
-  },
-  header: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    paddingHorizontal: spacing.lg,
-    marginBottom: spacing.md,
   },
   title: {
     fontSize: 24,

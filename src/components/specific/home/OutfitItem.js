@@ -94,7 +94,7 @@ const OutfitItem = ({
 const styles = StyleSheet.create({
   container: {
     width: ITEM_WIDTH,
-    height: ITEM_WIDTH * 1.8,
+    flex: 1,
     marginRight: spacing.md,
   },
   content: {
@@ -104,7 +104,7 @@ const styles = StyleSheet.create({
   },
   imagesContainer: {
     width: '100%',
-    height: '90%',
+    aspectRatio: 0.7,
     alignItems: 'center',
     justifyContent: 'center',
     position: 'relative',

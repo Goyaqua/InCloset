@@ -1,8 +1,9 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, StyleSheet, SafeAreaView, ScrollView, ActivityIndicator } from 'react-native';
+import { View, Text, StyleSheet, SafeAreaView, ActivityIndicator } from 'react-native';
 import { colors, spacing } from '../../styles/theme';
 import OutfitSection from '../../components/specific/home/OutfitSection';
 import AllClothesSection from '../../components/specific/home/AllClothesSection';
+import InclosetAIAssistantSection from '../../components/specific/home/InclosetAIAssistantSection';
 import { getOutfits, getFavorites, getClothes, deleteOutfit, toggleFavorite } from '../../services/supabase/data';
 
 const InclosetHomepage = ({ navigation, route }) => {
@@ -56,6 +57,7 @@ const InclosetHomepage = ({ navigation, route }) => {
   const handleAddOutfit = async (section) => {
     // Navigate to create outfit screen
     console.log('Navigate to create outfit for section:', section);
+    navigation.navigate('Combine'); // Navigate to the Combine page
   };
 
   const handleDeleteOutfit = async (outfitId) => {
@@ -102,11 +104,13 @@ const InclosetHomepage = ({ navigation, route }) => {
 
   return (
     <SafeAreaView style={styles.container}>
-      <ScrollView style={styles.scrollView} contentContainerStyle={styles.scrollContent}>
+      <View style={[styles.contentContainer, styles.scrollContent]}>
         <View style={styles.header}>
           <Text style={styles.title}>INCLOSET</Text>
           <Text style={styles.greeting}>Hello User!</Text>
         </View>
+
+        <InclosetAIAssistantSection />
 
         <OutfitSection
           title="SAVED OUTFITS"
@@ -119,23 +123,12 @@ const InclosetHomepage = ({ navigation, route }) => {
           itemContainerColor1={colors.textcontainer1}
         />
 
-        <OutfitSection
-          title="FAVOURITE OUTFITS"
-          outfits={favoriteOutfits}
-          onOutfitPress={handleOutfitPress}
-          onAddPress={() => handleAddOutfit('favourite')}
-          onDelete={handleDeleteOutfit}
-          onFavorite={handleToggleFavorite}
-          backgroundColor={colors.container2}
-          itemContainerColor2={colors.textcontainer2}
-        />
-
         <AllClothesSection
           clothes={clothes}
           onItemPress={handleClothingPress}
           onSeeAllPress={handleSeeAll}
         />
-      </ScrollView>
+      </View>
     </SafeAreaView>
   );
 };
@@ -150,7 +143,7 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: colors.background,
   },
-  scrollView: {
+  contentContainer: {
     flex: 1,
   },
   header: {

@@ -1,8 +1,11 @@
 import React from 'react';
-import { View, Text, StyleSheet, ScrollView } from 'react-native';
+import { View, Text, StyleSheet, FlatList, Dimensions } from 'react-native';
 import { colors, spacing } from '../../../styles/theme';
 import OutfitItem from './OutfitItem';
 import AddOutfitButton from './AddOutfitButton';
+
+const { width } = Dimensions.get('window');
+const ITEM_WIDTH = (width - spacing.md * 2 - spacing.sm * 2 - spacing.md * 2) / 2;
 
 const OutfitSection = ({
   title,
@@ -15,34 +18,49 @@ const OutfitSection = ({
   itemContainerColor1,
   itemContainerColor2
 }) => {
+  const data = [...outfits, { id: 'add-button', isAddButton: true }];
+
+  const renderItem = ({ item }) => {
+    if (item.isAddButton) {
+      return (
+        <View style={styles.outfitItemWrapper}>
+          <AddOutfitButton 
+            onPress={onAddPress} 
+            containerColor={itemContainerColor1 || itemContainerColor2}
+          />
+        </View>
+      );
+    }
+    return (
+      <View style={styles.outfitItemWrapper}>
+        <OutfitItem
+          title={item.title}
+          image={item.image}
+          onPress={() => onOutfitPress(item.id)}
+          onDelete={() => onDelete(item.id)}
+          onFavorite={() => onFavorite(item.id)}
+          isFavorite={title.toLowerCase().includes('favourite')}
+          containerColor={itemContainerColor1 || itemContainerColor2}
+        />
+      </View>
+    );
+  };
+
   return (
     <View style={[styles.container, { backgroundColor }]}>
       <View style={styles.header}>
         <Text style={[styles.title, { color: itemContainerColor1 || itemContainerColor2 }]}>{title}</Text>
         <Text style={styles.count}>{outfits.length} outfits</Text>
       </View>
-      <ScrollView
-        horizontal
-        showsHorizontalScrollIndicator={false}
-        contentContainerStyle={styles.scrollContent}
-      >
-        {outfits.map((outfit) => (
-          <OutfitItem
-            key={outfit.id}
-            title={outfit.title}
-            image={outfit.image}
-            onPress={() => onOutfitPress(outfit.id)}
-            onDelete={() => onDelete(outfit.id)}
-            onFavorite={() => onFavorite(outfit.id)}
-            isFavorite={title.toLowerCase().includes('favourite')}
-            containerColor={itemContainerColor1 || itemContainerColor2}
-          />
-        ))}
-        <AddOutfitButton 
-          onPress={onAddPress} 
-          containerColor={itemContainerColor1 || itemContainerColor2}
-        />
-      </ScrollView>
+      <FlatList
+        data={data}
+        renderItem={renderItem}
+        keyExtractor={(item) => item.id.toString()}
+        numColumns={2}
+        showsVerticalScrollIndicator={false}
+        contentContainerStyle={styles.gridContent}
+        columnWrapperStyle={styles.columnWrapper}
+      />
     </View>
   );
 };
@@ -55,6 +73,7 @@ const styles = StyleSheet.create({
     marginHorizontal: spacing.md,
     borderRadius: 25,
     backgroundColor: colors.container1,
+    minHeight: 250,
   },
   header: {
     flexDirection: 'row',
@@ -73,9 +92,17 @@ const styles = StyleSheet.create({
     fontWeight: '500',
     color: colors.textSecondary,
   },
-  scrollContent: {
+  gridContent: {
     paddingHorizontal: spacing.sm,
-    paddingBottom: spacing.sm,
+    flexGrow: 1,
+  },
+  columnWrapper: {
+    justifyContent: 'space-between',
+    marginBottom: spacing.md,
+  },
+  outfitItemWrapper: {
+    width: ITEM_WIDTH,
+    marginBottom: spacing.md,
   },
 });
 

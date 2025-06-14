@@ -17,8 +17,13 @@ const ClosetScreen = () => {
 
   const fetchClothes = async () => {
     try {
+      console.log('Fetching clothes with activeCategory:', activeCategory, 'and searchQuery:', searchQuery);
       const { data: { user } } = await supabase.auth.getUser();
-      if (!user) return;
+      if (!user) {
+        console.log('No user found, returning empty array.');
+        setClothes([]); // Ensure clothes are cleared if no user
+        return;
+      }
 
       let query = supabase
         .from('clothes')
@@ -26,23 +31,22 @@ const ClosetScreen = () => {
         .eq('user_id', user.id);
 
       if (activeCategory !== 'ALL') {
-        // Convert category names to match database values
-        const categoryMap = {
-          'HATS': 'hat',
-          'TOPS': 'top',
-          'BOTTOMS': 'bottom',
-          'SHOES': 'shoe'
-        };
-        query = query.eq('category', categoryMap[activeCategory]);
+        // Directly use activeCategory as it now matches database values
+        query = query.eq('type', activeCategory);
       }
 
       const { data, error } = await query;
-      if (error) throw error;
+      if (error) {
+        console.error('Supabase query error:', error);
+        throw error;
+      }
+      console.log('Supabase query data:', data);
 
       // Filter by search query
       const filteredData = data.filter(item => 
         item.name.toLowerCase().includes(searchQuery.toLowerCase())
       );
+      console.log('Filtered data for display:', filteredData);
 
       setClothes(filteredData);
     } catch (error) {
@@ -53,6 +57,7 @@ const ClosetScreen = () => {
   // Focus listener to refresh data when screen comes into focus
   useEffect(() => {
     const unsubscribe = navigation.addListener('focus', () => {
+      console.log('ClosetScreen focused, refetching clothes.');
       fetchClothes();
     });
 
@@ -61,6 +66,7 @@ const ClosetScreen = () => {
 
   // Fetch clothes when search or category changes
   useEffect(() => {
+    console.log('searchQuery or activeCategory changed, refetching clothes.');
     fetchClothes();
   }, [searchQuery, activeCategory]);
 
@@ -90,11 +96,13 @@ const ClosetScreen = () => {
         activeCategory={activeCategory}
         onSelectCategory={setActiveCategory}
       />
-      <ClothesGrid 
-        clothes={clothes}
-        onPressItem={handlePressItem}
-        onPressAdd={handleAddClothes}
-      />
+      <View style={styles.clothesGridContainer}>
+        <ClothesGrid 
+          clothes={clothes}
+          onPressItem={handlePressItem}
+          onPressAdd={handleAddClothes}
+        />
+      </View>
     </SafeAreaView>
   );
 };
@@ -103,10 +111,10 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: '#ffffff',
-  },
-  gridContainer: {
-    flex: 1,
     padding: 10,
+  },
+  clothesGridContainer: {
+    flex: 1,
   },
   grid: {
     flexDirection: 'row',

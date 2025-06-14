@@ -46,13 +46,12 @@ const ClothesGrid = ({ clothes, onPressItem, onPressAdd }) => {
 const styles = StyleSheet.create({
   gridContainer: {
     flex: 1,
-    flexDirection: 'row',
-    flexWrap: 'wrap',
     justifyContent: 'space-between',
     paddingBottom: 20,
   },
   listContainer: {
     paddingHorizontal: 0,
+    paddingBottom: 200,
   },
   clothingItem: {
     width: '32%',

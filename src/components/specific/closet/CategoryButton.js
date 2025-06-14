@@ -21,14 +21,14 @@ const CategoryButton = ({ title, icon, isActive, onPress }) => (
 
 const styles = StyleSheet.create({
   categoryButton: {
-    paddingHorizontal: 18.5,
     paddingVertical: 5,
-    borderRadius: 10
-    ,
+    borderRadius: 10,
     marginRight: 12,
     backgroundColor: '#F8F8F8',
     borderWidth: 2,
     borderColor: '#E0E0E0',
+    justifyContent: 'center',
+    alignItems: 'center',
   },
   activeCategoryButton: {
     backgroundColor: '#2E7D32',

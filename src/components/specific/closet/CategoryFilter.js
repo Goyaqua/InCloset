@@ -1,33 +1,46 @@
 import React from 'react';
-import { ScrollView, StyleSheet, View } from 'react-native';
+import { FlatList, StyleSheet, View, Dimensions } from 'react-native';
 import CategoryButton from './CategoryButton';
 
 const CATEGORIES = [
   { id: 'ALL', title: 'ALL', icon: null },
-  { id: 'HATS', title: 'Hats', icon: '🎩' },
-  { id: 'TOPS', title: 'Tops', icon: '👕' },
-  { id: 'BOTTOMS', title: 'Bottoms', icon: '👖' },
-  { id: 'SHOES', title: 'Shoes', icon: '👟' },
+  { id: 'top', title: 'Tops', icon: '👕' },
+  { id: 'bottom', title: 'Bottoms', icon: '👖' },
+  { id: 'dress', title: 'Dresses', icon: '👗' },
+  { id: 'shoes', title: 'Shoes', icon: '👟' },
+  { id: 'accessory', title: 'Accessories', icon: '💍' },
+  { id: 'outerwear', title: 'Outerwear', icon: '🧥' },
+  { id: 'bag', title: 'Bags', icon: '👜' },
 ];
 
+const { width } = Dimensions.get('window');
+const ITEM_WIDTH = width / 4 - 15;
+
 const CategoryFilter = ({ activeCategory, onSelectCategory }) => {
+  const renderCategoryButton = ({ item }) => (
+    <View style={styles.categoryButtonWrapper}>
+      <CategoryButton
+        key={item.id}
+        title={item.title}
+        icon={item.icon}
+        isActive={activeCategory === item.id}
+        onPress={() => onSelectCategory(item.id)}
+      />
+    </View>
+  );
+
   return (
     <View style={styles.categoryContainer}>
-      <ScrollView
-        horizontal
-        showsHorizontalScrollIndicator={false}
+      <FlatList
+        data={CATEGORIES}
+        renderItem={renderCategoryButton}
+        keyExtractor={(item) => item.id}
+        numColumns={4}
+        showsVerticalScrollIndicator={false}
+        scrollEnabled={false}
         contentContainerStyle={styles.categoryContent}
-      >
-        {CATEGORIES.map((category) => (
-          <CategoryButton
-            key={category.id}
-            title={category.title}
-            icon={category.icon}
-            isActive={activeCategory === category.id}
-            onPress={() => onSelectCategory(category.id)}
-          />
-        ))}
-      </ScrollView>
+        columnWrapperStyle={styles.columnWrapper}
+      />
     </View>
   );
 };
@@ -35,9 +48,18 @@ const CategoryFilter = ({ activeCategory, onSelectCategory }) => {
 const styles = StyleSheet.create({
   categoryContainer: {
     marginBottom: 20,
+    alignItems: 'center',
   },
   categoryContent: {
-    paddingHorizontal: 16,
+    paddingHorizontal: 0,
+  },
+  columnWrapper: {
+    justifyContent: 'space-around',
+    marginBottom: 10,
+  },
+  categoryButtonWrapper: {
+    width: ITEM_WIDTH,
+    marginHorizontal: 4,
   },
 });
 
