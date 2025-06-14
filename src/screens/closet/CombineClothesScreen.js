@@ -33,7 +33,7 @@ const clothingCategories = [
   { id: 'dress', label: 'Dress', icon: 'hanger', types: ['dress'] },
   { id: 'shoes', label: 'Shoes', icon: 'shoe-sneaker', types: ['shoes'] },
   { id: 'accessory', label: 'Accessory', icon: 'necklace', types: ['accessory'] },
-  { id: 'outerwear', label: 'Outerwear', icon: 'jacket', types: ['outerwear'] },
+  { id: 'outerwear', label: 'Outerwear', icon: 'coat-rack', types: ['outerwear'] },
   { id: 'bag', label: 'Bag', icon: 'bag-personal', types: ['bag'] },
 ];
 
@@ -53,6 +53,15 @@ const CombineClothesScreen = ({ navigation }) => {
     fetchClothes();
   }, []);
 
+  // Add focus listener to refresh data when screen comes into focus
+  useEffect(() => {
+    const unsubscribe = navigation.addListener('focus', () => {
+      fetchClothes();
+    });
+
+    return unsubscribe;
+  }, [navigation]);
+
   const fetchClothes = async () => {
     try {
       const { data: { user } } = await supabase.auth.getUser();
@@ -68,7 +77,18 @@ const CombineClothesScreen = ({ navigation }) => {
         .order('created_at', { ascending: false });
 
       if (error) throw error;
-      setAllClothes(data);
+      
+      // Ensure each item has the correct structure and proper string values
+      const formattedData = data.map(item => ({
+        id: item.id,
+        name: typeof item.name === 'string' ? item.name : String(item.name || ''),
+        type: typeof item.type === 'string' ? item.type : String(item.type || ''),
+        image_path: typeof item.image_path === 'string' ? item.image_path : String(item.image_path || ''),
+        styles: Array.isArray(item.styles) ? item.styles : [],
+        occasions: Array.isArray(item.occasions) ? item.occasions : []
+      }));
+      
+      setAllClothes(formattedData);
     } catch (error) {
       console.error('Error fetching clothes:', error);
       Alert.alert('Error', error.message || 'Error fetching clothes');
@@ -81,15 +101,20 @@ const CombineClothesScreen = ({ navigation }) => {
   };
 
   const addItemToBoard = (item) => {
-    const newItem = {
-      ...item,
-      boardId: `${item.id}-${Date.now()}`,
-      position: {
-        x: (SCREEN_WIDTH - 100) / 2,
-        y: (SCREEN_HEIGHT - 100) / 2,
-      },
+    // Ensure we have a properly formatted item
+    const formattedItem = {
+      id: item.id,
+      name: typeof item.name === 'string' ? item.name : String(item.name || ''),
+      image_path: typeof item.image_path === 'string' ? item.image_path : String(item.image_path || ''),
+      type: typeof item.type === 'string' ? item.type : String(item.type || '')
     };
-    setSelectedItems([...selectedItems, newItem]);
+
+    const newItem = {
+      ...formattedItem,
+      boardId: Date.now().toString(),
+      position: { x: 50, y: 50 }
+    };
+    setSelectedItems(prev => [...prev, newItem]);
     setShowFilterSheet(false);
   };
 
@@ -271,15 +296,29 @@ const CombineClothesScreen = ({ navigation }) => {
 
         <ScrollView style={styles.clothesGrid}>
           <View style={styles.gridContainer}>
-            {getFilteredClothes().map(item => (
-              <View key={item.id} style={styles.gridItem}>
-                <ClothingItem
-                  imagePath={item.image_path}
-                  name={item.name}
-                  onPress={() => addItemToBoard(item)}
-                />
-              </View>
-            ))}
+            {getFilteredClothes().map(item => {
+              // Ensure we have a proper item object
+              const formattedItem = {
+                id: item.id,
+                name: typeof item.name === 'string' ? item.name : '',
+                image_path: item.image_path || '',
+                type: item.type || '',
+                styles: item.styles,
+                occasions: item.occasions
+              };
+              
+              return (
+                <View key={item.id} style={styles.gridItem}>
+                  <ClothingItem
+                    imagePath={formattedItem.image_path}
+                    name={formattedItem.name}
+                    onPress={() => addItemToBoard(formattedItem)}
+                    styles={formattedItem.styles}
+                    occasions={formattedItem.occasions}
+                  />
+                </View>
+              );
+            })}
           </View>
         </ScrollView>
       </View>

@@ -3,7 +3,7 @@ import { TouchableOpacity, Image, StyleSheet, Text, View } from 'react-native';
 import { colors, spacing, layout, typography } from '../../../styles/theme';
 import { supabase } from '../../../services/supabase/auth';
 
-const ClothingItem = ({ imagePath, name, onPress, selected }) => {
+const ClothingItem = ({ imagePath, name, onPress, selected, styles: itemStyles, occasions }) => {
   const [imageUrl, setImageUrl] = useState(null);
 
   useEffect(() => {
@@ -31,6 +31,24 @@ const ClothingItem = ({ imagePath, name, onPress, selected }) => {
     }
   }, [imagePath]);
 
+  const renderTags = (tags) => {
+    if (!tags || tags.length === 0) return null;
+    return (
+      <View style={styles.tagsContainer}>
+        {tags.slice(0, 2).map((tag, index) => (
+          <View key={index} style={styles.tag}>
+            <Text style={styles.tagText}>{tag}</Text>
+          </View>
+        ))}
+        {tags.length > 2 && (
+          <View style={styles.tag}>
+            <Text style={styles.tagText}>+{tags.length - 2}</Text>
+          </View>
+        )}
+      </View>
+    );
+  };
+
   return (
     <TouchableOpacity 
       style={styles.container} 
@@ -56,6 +74,8 @@ const ClothingItem = ({ imagePath, name, onPress, selected }) => {
       <Text style={[styles.name, selected && styles.selectedName]} numberOfLines={2}>
         {name}
       </Text>
+      {renderTags(itemStyles)}
+      {renderTags(occasions)}
     </TouchableOpacity>
   );
 };
@@ -125,6 +145,25 @@ const styles = StyleSheet.create({
     color: colors.background,
     fontSize: 16,
     fontWeight: 'bold',
+  },
+  tagsContainer: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    justifyContent: 'center',
+    marginTop: 4,
+  },
+  tag: {
+    backgroundColor: colors.background,
+    paddingHorizontal: 6,
+    paddingVertical: 2,
+    borderRadius: 4,
+    marginHorizontal: 2,
+    marginVertical: 2,
+  },
+  tagText: {
+    fontSize: 10,
+    color: colors.text,
+    opacity: 0.8,
   },
 });
 

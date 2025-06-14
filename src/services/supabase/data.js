@@ -15,7 +15,7 @@ export const getClothes = async () => {
   }
 };
 
-export const addClothing = async (name, type, filePath) => {
+export const addClothing = async (name, type, filePath, styles = [], occasions = []) => {
   try {
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) throw new Error('User not authenticated');
@@ -27,7 +27,9 @@ export const addClothing = async (name, type, filePath) => {
         type,
         image_path: filePath,
         user_id: user.id,
-        created_at: new Date().toISOString()
+        created_at: new Date().toISOString(),
+        styles,
+        occasions
       }])
       .select()
       .single();

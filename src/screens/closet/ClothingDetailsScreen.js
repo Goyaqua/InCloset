@@ -19,13 +19,42 @@ import { Image as CachedImage } from 'expo-image';
 
 const clothingTypes = [
   { label: 'Pick a type', value: '' },
-  { label: 'Shirt', value: 'shirt' },
-  { label: 'Pants', value: 'pants' },
+  { label: 'Top', value: 'top' },
+  { label: 'Bottom', value: 'bottom' },
   { label: 'Dress', value: 'dress' },
-  { label: 'Jacket', value: 'jacket' },
   { label: 'Shoes', value: 'shoes' },
-  { label: 'Accessories', value: 'accessories' },
-  { label: 'Other', value: 'other' },
+  { label: 'Accessory', value: 'accessory' },
+  { label: 'Outerwear', value: 'outerwear' },
+  { label: 'Bag', value: 'bag' },
+];
+
+const clothingStyles = [
+  'casual',
+  'formal',
+  'business',
+  'party',
+  'sporty',
+  'streetwear',
+  'elegant',
+  'romantic',
+  'edgy',
+  'retro',
+  'minimalist'
+];
+
+const clothingOccasions = [
+  'work',
+  'interview',
+  'wedding',
+  'date',
+  'gym',
+  'school',
+  'beach',
+  'holiday',
+  'party',
+  'funeral',
+  'everyday',
+  'chill at home'
 ];
 
 const ClothingDetailsScreen = ({ route, navigation }) => {
@@ -454,11 +483,39 @@ const styles = StyleSheet.create({
   type: {
     fontSize: 18,
     color: '#4B5563',
-    marginBottom: 8,
+    marginBottom: 16,
+  },
+  section: {
+    marginBottom: 20,
+  },
+  sectionTitle: {
+    fontSize: 18,
+    fontWeight: '600',
+    color: '#000000',
+    marginBottom: 12,
+  },
+  tagsContainer: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 8,
+  },
+  tag: {
+    backgroundColor: '#F3F4F6',
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 16,
+    borderWidth: 1,
+    borderColor: '#E5E7EB',
+  },
+  tagText: {
+    fontSize: 14,
+    color: '#4B5563',
+    fontWeight: '500',
   },
   date: {
     fontSize: 16,
     color: '#6B7280',
+    marginTop: 8,
   },
   buttonContainer: {
     padding: 20,
@@ -571,62 +628,40 @@ const styles = StyleSheet.create({
   },
   modalContainer: {
     flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
+    justifyContent: 'flex-end',
     backgroundColor: 'rgba(0, 0, 0, 0.5)',
   },
   modalContent: {
     backgroundColor: '#ffffff',
-    padding: 20,
-    borderRadius: 12,
-    width: '80%',
+    borderTopLeftRadius: 20,
+    borderTopRightRadius: 20,
+    paddingBottom: 20,
     maxHeight: '80%',
   },
   modalHeader: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    marginBottom: 20,
+    padding: 16,
+    borderBottomWidth: 1,
+    borderBottomColor: '#E5E7EB',
   },
   modalButtonText: {
     fontSize: 16,
-    fontWeight: '600',
-    color: '#6366F1',
+    color: '#6B7280',
+    padding: 8,
   },
   modalDoneButton: {
     color: '#6366F1',
+    fontWeight: '600',
   },
   picker: {
     width: '100%',
-    height: 50,
+    height: 200,
   },
   disabledButton: {
     backgroundColor: '#D1D5DB',
     opacity: 0.6,
-  },
-  section: {
-    marginTop: 16,
-  },
-  sectionTitle: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: '#000000',
-    marginBottom: 8,
-  },
-  tagsContainer: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: 8,
-  },
-  tag: {
-    backgroundColor: '#F3F4F6',
-    paddingHorizontal: 12,
-    paddingVertical: 6,
-    borderRadius: 16,
-  },
-  tagText: {
-    fontSize: 14,
-    color: '#000000',
   },
   tagList: {
     padding: 16,

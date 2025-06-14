@@ -20,6 +20,8 @@ const ClothesGrid = ({ clothes, onPressItem, onPressAdd }) => {
           imagePath={item.image_path}
           name={item.name}
           onPress={() => onPressItem(item)}
+          styles={item.styles}
+          occasions={item.occasions}
         />
       </View>
     );
