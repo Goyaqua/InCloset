@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, StyleSheet, SafeAreaView, ActivityIndicator } from 'react-native';
+import { View, Text, StyleSheet, SafeAreaView, ActivityIndicator, FlatList } from 'react-native';
 import { colors, spacing } from '../../styles/theme';
 import OutfitSection from '../../components/specific/home/OutfitSection';
 import AllClothesSection from '../../components/specific/home/AllClothesSection';
@@ -92,6 +92,36 @@ const InclosetHomepage = ({ navigation, route }) => {
     console.log('Navigate to all clothes');
   };
 
+  const renderHeader = () => (
+    <View style={styles.header}>
+      <Text style={styles.title}>INCLOSET</Text>
+      <Text style={styles.greeting}>Hello User!</Text>
+    </View>
+  );
+
+  const renderContent = () => (
+    <View style={styles.contentContainer}>
+      <InclosetAIAssistantSection />
+
+      <OutfitSection
+        title="SAVED OUTFITS"
+        outfits={savedOutfits}
+        onOutfitPress={handleOutfitPress}
+        onAddPress={() => handleAddOutfit('saved')}
+        onDelete={handleDeleteOutfit}
+        onFavorite={handleToggleFavorite}
+        backgroundColor={colors.container1}
+        itemContainerColor1={colors.textcontainer1}
+      />
+
+      <AllClothesSection
+        clothes={clothes}
+        onItemPress={handleClothingPress}
+        onSeeAllPress={handleSeeAll}
+      />
+    </View>
+  );
+
   if (loading) {
     return (
       <SafeAreaView style={styles.container}>
@@ -104,41 +134,18 @@ const InclosetHomepage = ({ navigation, route }) => {
 
   return (
     <SafeAreaView style={styles.container}>
-      <View style={[styles.contentContainer, styles.scrollContent]}>
-        <View style={styles.header}>
-          <Text style={styles.title}>INCLOSET</Text>
-          <Text style={styles.greeting}>Hello User!</Text>
-        </View>
-
-        <InclosetAIAssistantSection />
-
-        <OutfitSection
-          title="SAVED OUTFITS"
-          outfits={savedOutfits}
-          onOutfitPress={handleOutfitPress}
-          onAddPress={() => handleAddOutfit('saved')}
-          onDelete={handleDeleteOutfit}
-          onFavorite={handleToggleFavorite}
-          backgroundColor={colors.container1}
-          itemContainerColor1={colors.textcontainer1}
-        />
-
-        <AllClothesSection
-          clothes={clothes}
-          onItemPress={handleClothingPress}
-          onSeeAllPress={handleSeeAll}
-        />
-      </View>
+      <FlatList
+        data={[{ key: 'content' }]}
+        renderItem={renderContent}
+        ListHeaderComponent={renderHeader}
+        showsVerticalScrollIndicator={false}
+        contentContainerStyle={styles.scrollContent}
+      />
     </SafeAreaView>
   );
 };
 
 const styles = StyleSheet.create({
-  loadingContainer: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
   container: {
     flex: 1,
     backgroundColor: colors.background,
@@ -163,7 +170,13 @@ const styles = StyleSheet.create({
     color: colors.textSecondary,
   },
   scrollContent: {
+    flexGrow: 1,
     paddingBottom: spacing.lg,
+  },
+  loadingContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
   },
 });
 

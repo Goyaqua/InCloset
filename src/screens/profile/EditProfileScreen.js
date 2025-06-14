@@ -9,7 +9,10 @@ import {
   Modal,
   Animated,
   Dimensions,
-  SafeAreaView
+  SafeAreaView,
+  KeyboardAvoidingView,
+  Platform,
+  ScrollView
 } from 'react-native';
 import { Picker } from '@react-native-picker/picker';
 import { useNavigation } from '@react-navigation/native';
@@ -151,6 +154,11 @@ const EditProfileScreen = () => {
   };
 
   const handleSave = async () => {
+    if (!firstName.trim() || !lastName.trim()) {
+      Alert.alert('Error', 'First name and last name are required');
+      return;
+    }
+
     try {
       setLoading(true);
       const { data: { user } } = await supabase.auth.getUser();
@@ -158,8 +166,8 @@ const EditProfileScreen = () => {
 
       const updates = {
         id: user.id,
-        first_name: firstName,
-        last_name: lastName,
+        first_name: firstName.trim(),
+        last_name: lastName.trim(),
         age: age ? parseInt(age) : null,
         gender,
         avatar_url: avatarUrl,
@@ -168,12 +176,20 @@ const EditProfileScreen = () => {
 
       const { error } = await supabase
         .from('profiles')
-        .upsert(updates);
+        .upsert(updates)
+        .select()
+        .single();
 
       if (error) throw error;
       
-      Alert.alert('Success', 'Profile updated successfully');
-      navigation.goBack();
+      Alert.alert('Success', 'Profile updated successfully', [
+        {
+          text: 'OK',
+          onPress: () => {
+            navigation.goBack();
+          }
+        }
+      ]);
     } catch (error) {
       console.error('Error updating profile:', error);
       Alert.alert('Error', 'Failed to update profile');
@@ -185,107 +201,142 @@ const EditProfileScreen = () => {
   const renderPicker = () => {
     if (pickerType === 'age') {
       return (
-        <Picker
-          selectedValue={age}
-          onValueChange={(itemValue) => setAge(itemValue)}
-        >
-          {Array.from({ length: 100 }, (_, i) => i + 1).map((num) => (
-            <Picker.Item 
-              key={num.toString()} 
-              label={num.toString()} 
-              value={num.toString()} 
-            />
-          ))}
-        </Picker>
+        <View style={styles.pickerContainer}>
+          <Picker
+            selectedValue={age}
+            onValueChange={(itemValue) => {
+              setAge(itemValue);
+              hidePickerModal();
+            }}
+            style={styles.picker}
+            dropdownIconColor={colors.text}
+            mode="dropdown"
+          >
+            <Picker.Item label="Select Age" value="" color={colors.text} />
+            {Array.from({ length: 100 }, (_, i) => i + 1).map((num) => (
+              <Picker.Item 
+                key={num.toString()} 
+                label={num.toString()} 
+                value={num.toString()} 
+                color={colors.text}
+              />
+            ))}
+          </Picker>
+        </View>
       );
     } else if (pickerType === 'gender') {
       return (
-        <Picker
-          selectedValue={gender}
-          onValueChange={(itemValue) => setGender(itemValue)}
-        >
-          <Picker.Item label="Select Gender" value="" />
-          <Picker.Item label="Female" value="female" />
-          <Picker.Item label="Male" value="male" />
-          <Picker.Item label="Other" value="other" />
-          <Picker.Item label="Prefer not to say" value="not_specified" />
-        </Picker>
+        <View style={styles.pickerContainer}>
+          <Picker
+            selectedValue={gender}
+            onValueChange={(itemValue) => {
+              setGender(itemValue);
+              hidePickerModal();
+            }}
+            style={styles.picker}
+            dropdownIconColor={colors.text}
+            mode="dropdown"
+          >
+            <Picker.Item label="Select Gender" value="" color={colors.text} />
+            <Picker.Item label="Female" value="female" color={colors.text} />
+            <Picker.Item label="Male" value="male" color={colors.text} />
+            <Picker.Item label="Other" value="other" color={colors.text} />
+            <Picker.Item label="Prefer not to say" value="not_specified" color={colors.text} />
+          </Picker>
+        </View>
       );
     }
   };
 
   return (
     <SafeAreaView style={styles.container}>
-      <View style={styles.content}>
-        <TouchableOpacity style={styles.avatarContainer} onPress={pickImage}>
-          <Image
-            source={avatarUrl ? { uri: avatarUrl } : require('../../../assets/adaptive-icon.png')}
-            style={styles.avatar}
-          />
-          <View style={styles.avatarOverlay}>
-            <Text style={styles.avatarText}>Change Photo</Text>
-          </View>
-        </TouchableOpacity>
+      <KeyboardAvoidingView 
+        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+        style={styles.keyboardAvoidingView}
+      >
+        <ScrollView 
+          style={styles.scrollView}
+          contentContainerStyle={styles.scrollViewContent}
+          showsVerticalScrollIndicator={false}
+        >
+          <View style={styles.content}>
+            <TouchableOpacity style={styles.avatarContainer} onPress={pickImage}>
+              <Image
+                source={avatarUrl ? { uri: avatarUrl } : require('../../../assets/adaptive-icon.png')}
+                style={styles.avatar}
+              />
+              <View style={styles.avatarOverlay}>
+                <Text style={styles.avatarText}>Change Photo</Text>
+              </View>
+            </TouchableOpacity>
 
-        <View style={styles.form}>
-          <View style={styles.inputGroup}>
-            <Text style={styles.inputLabel}>FIRST NAME</Text>
-            <Input
-              value={firstName}
-              onChangeText={setFirstName}
-              placeholder="Enter first name"
-              style={styles.shortInput}
-            />
-          </View>
+            <View style={styles.form}>
+              <View style={styles.inputGroup}>
+                <Text style={styles.inputLabel}>FIRST NAME</Text>
+                <Input
+                  value={firstName}
+                  onChangeText={setFirstName}
+                  placeholder="Enter first name"
+                  style={styles.shortInput}
+                />
+              </View>
 
-          <View style={styles.inputGroup}>
-            <Text style={styles.inputLabel}>LAST NAME</Text>
-            <Input
-              value={lastName}
-              onChangeText={setLastName}
-              placeholder="Enter last name"
-              style={styles.shortInput}
-            />
-          </View>
+              <View style={styles.inputGroup}>
+                <Text style={styles.inputLabel}>LAST NAME</Text>
+                <Input
+                  value={lastName}
+                  onChangeText={setLastName}
+                  placeholder="Enter last name"
+                  style={styles.shortInput}
+                />
+              </View>
 
-          <View style={styles.inputGroup}>
-            <Text style={styles.inputLabel}>AGE</Text>
+              <View style={styles.inputGroup}>
+                <Text style={styles.inputLabel}>AGE</Text>
+                <TouchableOpacity 
+                  style={[styles.pickerButton, styles.shortInput]} 
+                  onPress={() => showPickerModal('age')}
+                >
+                  <Text style={[styles.pickerValue, !age && styles.placeholderText]}>
+                    {age || 'Enter age'}
+                  </Text>
+                </TouchableOpacity>
+              </View>
+
+              <View style={styles.inputGroup}>
+                <Text style={styles.inputLabel}>GENDER</Text>
+                <TouchableOpacity 
+                  style={[styles.pickerButton, styles.shortInput]} 
+                  onPress={() => showPickerModal('gender')}
+                >
+                  <Text style={[styles.pickerValue, !gender && styles.placeholderText]}>
+                    {gender ? gender.charAt(0).toUpperCase() + gender.slice(1) : 'Enter gender'}
+                  </Text>
+                </TouchableOpacity>
+              </View>
+            </View>
+
             <TouchableOpacity 
-              style={[styles.pickerButton, styles.shortInput]} 
-              onPress={() => showPickerModal('age')}
+              style={[styles.saveButton, loading && styles.saveButtonDisabled]} 
+              onPress={handleSave}
+              disabled={loading}
             >
-              <Text style={[styles.pickerValue, !age && styles.placeholderText]}>
-                {age || 'Enter age'}
+              <Text style={styles.saveButtonText}>
+                {loading ? 'SAVING...' : 'SAVE'}
               </Text>
             </TouchableOpacity>
           </View>
+        </ScrollView>
+      </KeyboardAvoidingView>
 
-          <View style={styles.inputGroup}>
-            <Text style={styles.inputLabel}>GENDER</Text>
-            <TouchableOpacity 
-              style={[styles.pickerButton, styles.shortInput]} 
-              onPress={() => showPickerModal('gender')}
-            >
-              <Text style={[styles.pickerValue, !gender && styles.placeholderText]}>
-                {gender ? gender.charAt(0).toUpperCase() + gender.slice(1) : 'Enter gender'}
-              </Text>
-            </TouchableOpacity>
-          </View>
-        </View>
-
-        <TouchableOpacity style={styles.saveButton} onPress={handleSave}>
-          <Text style={styles.saveButtonText}>SAVE</Text>
-        </TouchableOpacity>
-      </View>
-
-      <Modal visible={showPicker} transparent animationType="none">
-        <Animated.View style={[styles.modalContainer, { opacity: backdropOpacity }]}>
+      <Modal visible={showPicker} transparent animationType="slide">
+        <View style={styles.modalContainer}>
           <TouchableOpacity
             style={styles.modalBackdrop}
             activeOpacity={1}
             onPress={hidePickerModal}
           />
-          <Animated.View style={[styles.modalContent, { transform: [{ translateY: slideAnim }] }]}>
+          <View style={styles.modalContent}>
             <View style={styles.modalHeader}>
               <TouchableOpacity onPress={hidePickerModal}>
                 <Text style={styles.modalButtonText}>Cancel</Text>
@@ -295,8 +346,8 @@ const EditProfileScreen = () => {
               </TouchableOpacity>
             </View>
             {renderPicker()}
-          </Animated.View>
-        </Animated.View>
+          </View>
+        </View>
       </Modal>
     </SafeAreaView>
   );
@@ -306,6 +357,15 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: colors.background,
+  },
+  keyboardAvoidingView: {
+    flex: 1,
+  },
+  scrollView: {
+    flex: 1,
+  },
+  scrollViewContent: {
+    flexGrow: 1,
   },
   content: {
     flex: 1,
@@ -382,6 +442,9 @@ const styles = StyleSheet.create({
     marginTop: spacing.xl,
     marginBottom: spacing.xl,
   },
+  saveButtonDisabled: {
+    opacity: 0.7,
+  },
   saveButtonText: {
     color: colors.background,
     fontSize: 16,
@@ -416,9 +479,19 @@ const styles = StyleSheet.create({
   modalButtonText: {
     fontSize: 16,
     color: colors.primary,
+    padding: spacing.sm,
   },
   modalDoneButton: {
     fontWeight: '600',
+  },
+  pickerContainer: {
+    backgroundColor: colors.background,
+    height: 200,
+  },
+  picker: {
+    width: '100%',
+    height: 200,
+    color: colors.text,
   },
 });
 

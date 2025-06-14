@@ -28,13 +28,14 @@ const SCREEN_WIDTH = Dimensions.get('window').width;
 const SCREEN_HEIGHT = Dimensions.get('window').height;
 
 const clothingCategories = [
-  { id: 'top', label: 'Top', icon: 'tshirt-crew-outline', types: ['top'] },
-  { id: 'bottom', label: 'Bottom', icon: 'human-handsdown', types: ['bottom'] },
-  { id: 'dress', label: 'Dress', icon: 'hanger', types: ['dress'] },
-  { id: 'shoes', label: 'Shoes', icon: 'shoe-sneaker', types: ['shoes'] },
-  { id: 'accessory', label: 'Accessory', icon: 'necklace', types: ['accessory'] },
-  { id: 'outerwear', label: 'Outerwear', icon: 'coat-rack', types: ['outerwear'] },
-  { id: 'bag', label: 'Bag', icon: 'bag-personal', types: ['bag'] },
+  { id: 'ALL', label: 'ALL', icon: null, types: [] },
+  { id: 'top', label: 'Tops', icon: '👕', types: ['top'] },
+  { id: 'bottom', label: 'Bottoms', icon: '👖', types: ['bottom'] },
+  { id: 'dress', label: 'Dresses', icon: '👗', types: ['dress'] },
+  { id: 'shoes', label: 'Shoes', icon: '👟', types: ['shoes'] },
+  { id: 'accessory', label: 'Accessories', icon: '💍', types: ['accessory'] },
+  { id: 'outerwear', label: 'Outerwear', icon: '🧥', types: ['outerwear'] },
+  { id: 'bag', label: 'Bags', icon: '👜', types: ['bag'] },
 ];
 
 const CombineClothesScreen = ({ navigation }) => {
@@ -256,43 +257,51 @@ const CombineClothesScreen = ({ navigation }) => {
       title="Add Clothes"
     >
       <View style={styles.filterContainer}>
-        <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.filterScroll}>
+        <View style={styles.filterGrid}>
           {clothingCategories.map(category => (
             <TouchableOpacity
               key={category.id}
               style={[
                 styles.filterChip,
-                activeFilters.some(type => category.types.includes(type)) && styles.filterChipActive
+                (category.id === 'ALL' ? activeFilters.length === 0 : activeFilters.some(type => category.types.includes(type))) && styles.filterChipActive
               ]}
               onPress={() => {
-                setActiveFilters(prev => {
-                  const newFilters = [...prev];
-                  category.types.forEach(type => {
-                    const index = newFilters.indexOf(type);
-                    if (index === -1) {
-                      newFilters.push(type);
-                    } else {
-                      newFilters.splice(index, 1);
-                    }
+                if (category.id === 'ALL') {
+                  setActiveFilters([]);
+                } else {
+                  setActiveFilters(prev => {
+                    const newFilters = [...prev];
+                    category.types.forEach(type => {
+                      const index = newFilters.indexOf(type);
+                      if (index === -1) {
+                        newFilters.push(type);
+                      } else {
+                        newFilters.splice(index, 1);
+                      }
+                    });
+                    return newFilters;
                   });
-                  return newFilters;
-                });
+                }
               }}
             >
-              <MaterialCommunityIcons
-                name={category.icon}
-                size={20}
-                color={activeFilters.some(type => category.types.includes(type)) ? colors.background : colors.text}
-              />
-              <Text style={[
-                styles.filterChipText,
-                activeFilters.some(type => category.types.includes(type)) && styles.filterChipTextActive
-              ]}>
-                {category.label}
-              </Text>
+              {category.icon ? (
+                <Text style={[
+                  styles.filterChipIcon,
+                  (category.id === 'ALL' ? activeFilters.length === 0 : activeFilters.some(type => category.types.includes(type))) && styles.filterChipIconActive
+                ]}>
+                  {category.icon}
+                </Text>
+              ) : (
+                <Text style={[
+                  styles.filterChipText,
+                  activeFilters.length === 0 && styles.filterChipTextActive
+                ]}>
+                  {category.label}
+                </Text>
+              )}
             </TouchableOpacity>
           ))}
-        </ScrollView>
+        </View>
 
         <ScrollView style={styles.clothesGrid}>
           <View style={styles.gridContainer}>
@@ -404,8 +413,8 @@ const CombineClothesScreen = ({ navigation }) => {
         >
           <MaterialCommunityIcons
             name="plus"
-            size={24}
-            color={colors.primary}
+            size={32}
+            color={colors.background}
           />
         </TouchableOpacity>
       </View>
@@ -482,17 +491,16 @@ const styles = StyleSheet.create({
     borderTopColor: '#E9ECEF',
   },
   cancelButton: {
-    flex: 1,
-    paddingVertical: 16,
-    backgroundColor: '#EC4899',
-    borderRadius: 12,
-    alignItems: 'center',
+    backgroundColor: '#2E7D32',
+    paddingVertical: spacing.sm,
+    paddingHorizontal: spacing.lg,
+    borderRadius: 10,
+    marginTop: spacing.md,
   },
   cancelButtonText: {
-    fontSize: 16,
+    color: colors.background,
     fontWeight: '600',
-    color: '#FFFFFF',
-    letterSpacing: 0.5,
+    fontSize: 14,
   },
   saveButton: {
     flex: 1,
@@ -530,31 +538,43 @@ const styles = StyleSheet.create({
   filterContainer: {
     flex: 1,
   },
-  filterScroll: {
+  filterGrid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    justifyContent: 'space-around',
     paddingHorizontal: spacing.lg,
-    paddingVertical: spacing.md,
+    paddingVertical: spacing.sm,
   },
   filterChip: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingHorizontal: spacing.md,
-    paddingVertical: spacing.sm,
-    borderRadius: 20,
-    backgroundColor: colors.background,
-    marginRight: spacing.sm,
+    padding: spacing.sm,
+    borderRadius: 10,
+    backgroundColor: '#F8F8F8',
     borderWidth: 1,
-    borderColor: colors.primary,
+    borderColor: '#E0E0E0',
+    marginRight: spacing.sm,
+    marginBottom: spacing.xs,
+    width: '22%',
+    aspectRatio: 1.5,
+    justifyContent: 'center',
+    alignItems: 'center',
   },
   filterChipActive: {
-    backgroundColor: colors.primary,
+    backgroundColor: '#2E7D32',
+    borderColor: '#2E7D32',
   },
   filterChipText: {
-    marginLeft: spacing.xs,
-    color: colors.text,
-    fontSize: 14,
-    fontWeight: '500',
+    fontSize: 12,
+    color: colors.textSecondary,
+    textAlign: 'center',
   },
   filterChipTextActive: {
+    color: colors.background,
+  },
+  filterChipIcon: {
+    fontSize: 20,
+    marginBottom: spacing.xs,
+  },
+  filterChipIconActive: {
     color: colors.background,
   },
   clothesGrid: {
