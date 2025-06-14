@@ -10,6 +10,7 @@ import {
   Alert,
 } from 'react-native';
 import { supabase } from '../../services/supabase/auth';
+import { ensureProfile } from '../../services/supabase/data';
 import { colors, spacing, typography, layout } from '../../styles/theme';
 
 const ProfileScreen = ({ navigation }) => {
@@ -29,12 +30,7 @@ const ProfileScreen = ({ navigation }) => {
     try {
       const { data: { user } } = await supabase.auth.getUser();
       if (user) {
-        const { data, error } = await supabase
-          .from('profiles')
-          .select('*')
-          .eq('id', user.id)
-          .single();
-        
+        const { data, error } = await ensureProfile(user);
         if (error) throw error;
         setProfile(data);
       }

@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   View,
   Text,
@@ -9,53 +9,81 @@ import {
 } from 'react-native';
 import { colors, spacing, layout, typography } from '../../../styles/theme';
 import { MaterialIcons } from '@expo/vector-icons';
+import { supabase } from '../../../services/supabase/auth';
 
 const { width } = Dimensions.get('window');
-const ITEM_WIDTH = width * 0.25;
+const ITEM_WIDTH = width * 0.35;
 
 const OutfitItem = ({ 
   title, 
-  items = [], 
+  image,
   onPress, 
   onDelete, 
   onFavorite, 
   isFavorite, 
   containerColor 
 }) => {
+  const [imageUrl, setImageUrl] = useState(null);
+
+  useEffect(() => {
+    const getSignedUrl = async () => {
+      try {
+        if (!image) return;
+        
+        // Log the image path for debugging
+        console.log('Attempting to get signed URL for image:', image);
+        
+        const { data, error } = await supabase.storage
+          .from('userclothes')
+          .createSignedUrl(image, 3600); // 1 hour expiry
+        
+        if (error) {
+          console.error('Error getting signed URL:', error);
+          return;
+        }
+        
+        if (data?.signedUrl) {
+          console.log('Successfully got signed URL');
+          setImageUrl(data.signedUrl);
+        } else {
+          console.log('No signed URL in response');
+        }
+      } catch (error) {
+        console.error('Error in getSignedUrl:', error);
+      }
+    };
+
+    getSignedUrl();
+  }, [image]);
+
   return (
-    <View style={[styles.container, { backgroundColor: containerColor }]}>
+    <View style={styles.container}>
       <TouchableOpacity style={styles.content} onPress={onPress} activeOpacity={0.8}>
         <View style={styles.imagesContainer}>
-          {items?.slice(0, 3).map((item, index) => (
+          {imageUrl ? (
             <Image
-              key={item.id}
-              source={{ uri: item.image }}
-              style={[
-                styles.image,
-                { zIndex: 3 - index },
-              ]}
+              source={{ uri: imageUrl }}
+              style={styles.image}
+              resizeMode="cover"
+              onError={(e) => console.error('Image loading error:', e.nativeEvent.error)}
             />
-          ))}
+          ) : (
+            <View style={styles.placeholderContainer}>
+              <MaterialIcons name="image" size={24} color={colors.textSecondary} />
+            </View>
+          )}
         </View>
       </TouchableOpacity>
       
-      <Text style={styles.title} numberOfLines={1}>
-        {title}
-      </Text>
-
-      <View style={styles.actions}>
-        <TouchableOpacity style={styles.actionButton} onPress={onFavorite}>
-          <MaterialIcons
-            name={isFavorite ? 'favorite' : 'favorite-border'}
-            size={16}
-            color={isFavorite ? colors.danger : colors.textSecondary}
-          />
-        </TouchableOpacity>
-        <TouchableOpacity style={styles.actionButton} onPress={onDelete}>
+      <View style={styles.footer}>
+        <Text style={styles.title} numberOfLines={1}>
+          {title}
+        </Text>
+        <TouchableOpacity style={styles.deleteButton} onPress={onDelete}>
           <MaterialIcons
             name="delete-outline"
-            size={16}
-            color={colors.textSecondary}
+            size={20}
+            color={colors.danger}
           />
         </TouchableOpacity>
       </View>
@@ -66,15 +94,8 @@ const OutfitItem = ({
 const styles = StyleSheet.create({
   container: {
     width: ITEM_WIDTH,
-    height: ITEM_WIDTH * 1.5,
+    height: ITEM_WIDTH * 1.8,
     marginRight: spacing.md,
-    borderRadius: layout.borderRadius * 1.5,
-    padding: spacing.sm,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.08,
-    shadowRadius: 4,
-    elevation: 2,
   },
   content: {
     flex: 1,
@@ -83,34 +104,41 @@ const styles = StyleSheet.create({
   },
   imagesContainer: {
     width: '100%',
-    height: '75%',
+    height: '90%',
     alignItems: 'center',
     justifyContent: 'center',
     position: 'relative',
   },
   image: {
-    width: '85%',
-    height: '85%',
+    width: '100%',
+    height: '100%',
     resizeMode: 'cover',
     borderRadius: layout.borderRadius,
-    position: 'absolute',
-    backgroundColor: colors.background,
+  },
+  footer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingTop: spacing.sm,
+    paddingHorizontal: spacing.xs,
   },
   title: {
     ...typography.caption,
     color: colors.text,
-    marginTop: spacing.xs,
-    marginBottom: spacing.xs,
-    fontWeight: '600',
-    textAlign: 'center',
+    flex: 1,
+    marginRight: spacing.xs,
+    fontSize: 14,
   },
-  actions: {
-    flexDirection: 'row',
-    justifyContent: 'space-around',
-    paddingTop: spacing.xs,
-  },
-  actionButton: {
+  deleteButton: {
     padding: spacing.xs,
+  },
+  placeholderContainer: {
+    width: '100%',
+    height: '100%',
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: colors.background,
+    borderRadius: layout.borderRadius,
   },
 });
 

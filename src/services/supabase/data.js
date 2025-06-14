@@ -107,6 +107,12 @@ export const deleteClothing = async (id) => {
 // Outfits functions
 export const getOutfits = async () => {
   try {
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) {
+      console.log('No authenticated user found');
+      return { data: [], error: null };
+    }
+
     const { data: outfits, error } = await supabase
       .from('outfits')
       .select(`
@@ -115,50 +121,41 @@ export const getOutfits = async () => {
           clothes(*)
         )
       `)
+      .eq('user_id', user.id)
       .order('created_at', { ascending: false });
     
     if (error) throw error;
 
+    // Log the raw outfit data for debugging
+    console.log('Raw outfit data:', outfits);
+
     // Transform the data to match the expected format
-    const transformedOutfits = outfits.map(outfit => ({
-      id: outfit.id,
-      title: outfit.name,
-      items: outfit.outfit_items.map(item => ({
-        id: item.clothes.id,
-        image: item.clothes.image_url
-      }))
-    }));
+    const transformedOutfits = outfits?.map(outfit => {
+      // Log each outfit's image path for debugging
+      console.log('Outfit image path:', outfit.image_path);
+      
+      return {
+        id: outfit.id,
+        title: outfit.name,
+        image: outfit.image_path, // This should be the full path from storage
+        items: outfit.outfit_items?.map(item => ({
+          id: item.clothes?.id,
+          image: item.clothes?.image_path
+        })) || []
+      };
+    }) || [];
 
     return { data: transformedOutfits, error: null };
   } catch (error) {
-    return { data: null, error };
+    console.error('Error in getOutfits:', error);
+    return { data: [], error };
   }
 };
 
-export const addOutfit = async (name, clothingIds) => {
+export const addOutfit = async (name, clothingIds, imagePath) => {
   try {
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) throw new Error('User not authenticated');
-
-    // Try to ensure user exists in users table if needed
-    try {
-      const { error: userInsertError } = await supabase
-        .from('users')
-        .insert([{ 
-          id: user.id,
-          email: user.email,
-          created_at: new Date().toISOString()
-        }])
-        .select()
-        .single();
-      
-      // Ignore error if user already exists
-      if (userInsertError && !userInsertError.message.includes('duplicate key')) {
-        console.warn('Could not insert user:', userInsertError);
-      }
-    } catch (userError) {
-      console.warn('Users table might not exist or user already exists:', userError);
-    }
 
     // First create the outfit
     const { data: outfit, error: outfitError } = await supabase
@@ -166,6 +163,7 @@ export const addOutfit = async (name, clothingIds) => {
       .insert([{ 
         name,
         user_id: user.id,
+        image_path: imagePath,
         created_at: new Date().toISOString()
       }])
       .select()
@@ -187,18 +185,29 @@ export const addOutfit = async (name, clothingIds) => {
 
     return { data: outfit, error: null };
   } catch (error) {
+    console.error('Error adding outfit:', error);
     return { data: null, error };
   }
 };
 
 export const deleteOutfit = async (id) => {
   try {
-    const { error } = await supabase
+    // First delete all outfit items associated with this outfit
+    const { error: itemsError } = await supabase
+      .from('outfit_items')
+      .delete()
+      .eq('outfit_id', id);
+    
+    if (itemsError) throw itemsError;
+
+    // Then delete the outfit itself
+    const { error: outfitError } = await supabase
       .from('outfits')
       .delete()
       .eq('id', id);
     
-    if (error) throw error;
+    if (outfitError) throw outfitError;
+    
     return { error: null };
   } catch (error) {
     return { error };
@@ -269,5 +278,40 @@ export const toggleFavorite = async (outfitId) => {
     return { error: null };
   } catch (error) {
     return { error };
+  }
+};
+
+// Profile functions
+export const ensureProfile = async (user) => {
+  try {
+    // First check if profile exists
+    const { data: existingProfile, error: fetchError } = await supabase
+      .from('profiles')
+      .select('*')
+      .eq('id', user.id)
+      .single();
+
+    if (fetchError && fetchError.code === 'PGRST116') {
+      // Profile doesn't exist, create it
+      const { data: newProfile, error: createError } = await supabase
+        .from('profiles')
+        .insert([{
+          id: user.id,
+          email: user.email,
+          created_at: new Date().toISOString(),
+          updated_at: new Date().toISOString()
+        }])
+        .select()
+        .single();
+
+      if (createError) throw createError;
+      return { data: newProfile, error: null };
+    }
+
+    if (fetchError) throw fetchError;
+    return { data: existingProfile, error: null };
+  } catch (error) {
+    console.error('Error ensuring profile:', error);
+    return { data: null, error };
   }
 };

@@ -30,7 +30,7 @@ const OutfitSection = ({
           <OutfitItem
             key={outfit.id}
             title={outfit.title}
-            items={outfit.items}
+            image={outfit.image}
             onPress={() => onOutfitPress(outfit.id)}
             onDelete={() => onDelete(outfit.id)}
             onFavorite={() => onFavorite(outfit.id)}

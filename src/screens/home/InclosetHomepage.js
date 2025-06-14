@@ -5,7 +5,7 @@ import OutfitSection from '../../components/specific/home/OutfitSection';
 import AllClothesSection from '../../components/specific/home/AllClothesSection';
 import { getOutfits, getFavorites, getClothes, deleteOutfit, toggleFavorite } from '../../services/supabase/data';
 
-const InclosetHomepage = ({ navigation }) => {
+const InclosetHomepage = ({ navigation, route }) => {
   const [loading, setLoading] = useState(true);
   const [savedOutfits, setSavedOutfits] = useState([]);
   const [favoriteOutfits, setFavoriteOutfits] = useState([]);
@@ -14,6 +14,15 @@ const InclosetHomepage = ({ navigation }) => {
   useEffect(() => {
     loadData();
   }, []);
+
+  // Add focus listener to refresh data when returning to this screen
+  useEffect(() => {
+    const unsubscribe = navigation.addListener('focus', () => {
+      loadData();
+    });
+
+    return unsubscribe;
+  }, [navigation]);
 
   const loadData = async () => {
     try {

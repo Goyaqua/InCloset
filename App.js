@@ -16,6 +16,7 @@ SplashScreen.preventAutoHideAsync()
 export default function App() {
   const [appIsReady, setAppIsReady] = useState(false);
   const [session, setSession] = useState(null);
+  const [isInitializing, setIsInitializing] = useState(true);
 
   useEffect(() => {
     async function prepare() {
@@ -23,7 +24,10 @@ export default function App() {
         console.log('Loading splash screen...');
         
         // Check for existing session
-        const { session: existingSession } = await getSession();
+        const { session: existingSession, error: sessionError } = await getSession();
+        if (sessionError) {
+          console.warn('Error getting session:', sessionError);
+        }
         setSession(existingSession);
 
         // Set up auth state listener
@@ -32,16 +36,19 @@ export default function App() {
           setSession(session);
         });
 
+        // Wait for session to be properly initialized
         await new Promise(resolve => setTimeout(resolve, 1000));
         
         // Tell the application to render
         setAppIsReady(true);
+        setIsInitializing(false);
 
         return () => {
           authListener?.unsubscribe();
         };
       } catch (e) {
         console.warn('Error in splash screen:', e);
+        setIsInitializing(false);
       }
     }
 
@@ -60,7 +67,7 @@ export default function App() {
     }
   }, [appIsReady]);
 
-  if (!appIsReady) {
+  if (!appIsReady || isInitializing) {
     return null;
   }
 
