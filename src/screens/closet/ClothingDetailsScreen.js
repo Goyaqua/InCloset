@@ -38,6 +38,10 @@ const ClothingDetailsScreen = ({ route, navigation }) => {
   const [editName, setEditName] = useState(item.name);
   const [editType, setEditType] = useState(item.type);
   const [showTypePicker, setShowTypePicker] = useState(false);
+  const [editStyles, setEditStyles] = useState(item.styles || []);
+  const [editOccasions, setEditOccasions] = useState(item.occasions || []);
+  const [showStylePicker, setShowStylePicker] = useState(false);
+  const [showOccasionPicker, setShowOccasionPicker] = useState(false);
 
   useEffect(() => {
     const getSignedUrl = async () => {
@@ -71,6 +75,8 @@ const ClothingDetailsScreen = ({ route, navigation }) => {
     setIsEditing(false);
     setEditName(item.name);
     setEditType(item.type);
+    setEditStyles(item.styles || []);
+    setEditOccasions(item.occasions || []);
   };
 
   const handleSaveEdit = async () => {
@@ -85,14 +91,20 @@ const ClothingDetailsScreen = ({ route, navigation }) => {
 
     setIsUpdating(true);
     try {
-      const { error } = await updateClothing(item.id, editName.trim(), editType);
-      if (error) {
-        throw new Error(error.message);
-      }
+      const { error } = await updateClothing(item.id, {
+        name: editName.trim(),
+        type: editType,
+        styles: editStyles,
+        occasions: editOccasions
+      });
+
+      if (error) throw error;
 
       // Update the local item data
       item.name = editName.trim();
       item.type = editType;
+      item.styles = editStyles;
+      item.occasions = editOccasions;
       
       setIsEditing(false);
       Alert.alert('Success', 'Clothing item updated successfully!');
@@ -136,6 +148,20 @@ const ClothingDetailsScreen = ({ route, navigation }) => {
     } finally {
       setIsDeleting(false);
     }
+  };
+
+  const renderTags = (tags) => {
+    if (!tags || tags.length === 0) return null;
+    
+    return (
+      <View style={styles.tagsContainer}>
+        {tags.map((tag, index) => (
+          <View key={index} style={styles.tag}>
+            <Text style={styles.tagText}>{tag}</Text>
+          </View>
+        ))}
+      </View>
+    );
   };
 
   return (
@@ -182,11 +208,51 @@ const ClothingDetailsScreen = ({ route, navigation }) => {
                   </Text>
                 </TouchableOpacity>
               </View>
+
+              <View style={styles.editSection}>
+                <Text style={styles.label}>Style</Text>
+                <TouchableOpacity 
+                  style={styles.editInput} 
+                  onPress={() => setShowStylePicker(true)}
+                >
+                  <Text style={[styles.editInputText, editStyles.length === 0 && styles.placeholderText]}>
+                    {editStyles.length > 0 
+                      ? `${editStyles.length} style${editStyles.length > 1 ? 's' : ''} selected`
+                      : 'Select styles'}
+                  </Text>
+                </TouchableOpacity>
+              </View>
+
+              <View style={styles.editSection}>
+                <Text style={styles.label}>Occasion</Text>
+                <TouchableOpacity 
+                  style={styles.editInput} 
+                  onPress={() => setShowOccasionPicker(true)}
+                >
+                  <Text style={[styles.editInputText, editOccasions.length === 0 && styles.placeholderText]}>
+                    {editOccasions.length > 0 
+                      ? `${editOccasions.length} occasion${editOccasions.length > 1 ? 's' : ''} selected`
+                      : 'Select occasions'}
+                  </Text>
+                </TouchableOpacity>
+              </View>
             </>
           ) : (
             <>
               <Text style={styles.name}>{item.name}</Text>
               <Text style={styles.type}>Type: {item.type}</Text>
+              {item.styles && item.styles.length > 0 && (
+                <View style={styles.section}>
+                  <Text style={styles.sectionTitle}>Styles</Text>
+                  {renderTags(item.styles)}
+                </View>
+              )}
+              {item.occasions && item.occasions.length > 0 && (
+                <View style={styles.section}>
+                  <Text style={styles.sectionTitle}>Occasions</Text>
+                  {renderTags(item.occasions)}
+                </View>
+              )}
               <Text style={styles.date}>
                 Added: {new Date(item.created_at).toLocaleDateString()}
               </Text>
@@ -268,6 +334,88 @@ const ClothingDetailsScreen = ({ route, navigation }) => {
                 />
               ))}
             </Picker>
+          </View>
+        </View>
+      </Modal>
+
+      {/* Style Picker Modal */}
+      <Modal visible={showStylePicker} transparent animationType="slide">
+        <View style={styles.modalContainer}>
+          <View style={styles.modalContent}>
+            <View style={styles.modalHeader}>
+              <TouchableOpacity onPress={() => setShowStylePicker(false)}>
+                <Text style={styles.modalButtonText}>Cancel</Text>
+              </TouchableOpacity>
+              <TouchableOpacity onPress={() => setShowStylePicker(false)}>
+                <Text style={[styles.modalButtonText, styles.modalDoneButton]}>Done</Text>
+              </TouchableOpacity>
+            </View>
+            <ScrollView style={styles.tagList}>
+              {clothingStyles.map(style => (
+                <TouchableOpacity
+                  key={style}
+                  style={[
+                    styles.tagItem,
+                    editStyles.includes(style) && styles.tagItemSelected
+                  ]}
+                  onPress={() => {
+                    setEditStyles(prev => 
+                      prev.includes(style)
+                        ? prev.filter(s => s !== style)
+                        : [...prev, style]
+                    );
+                  }}
+                >
+                  <Text style={[
+                    styles.tagText,
+                    editStyles.includes(style) && styles.tagTextSelected
+                  ]}>
+                    {style.charAt(0).toUpperCase() + style.slice(1)}
+                  </Text>
+                </TouchableOpacity>
+              ))}
+            </ScrollView>
+          </View>
+        </View>
+      </Modal>
+
+      {/* Occasion Picker Modal */}
+      <Modal visible={showOccasionPicker} transparent animationType="slide">
+        <View style={styles.modalContainer}>
+          <View style={styles.modalContent}>
+            <View style={styles.modalHeader}>
+              <TouchableOpacity onPress={() => setShowOccasionPicker(false)}>
+                <Text style={styles.modalButtonText}>Cancel</Text>
+              </TouchableOpacity>
+              <TouchableOpacity onPress={() => setShowOccasionPicker(false)}>
+                <Text style={[styles.modalButtonText, styles.modalDoneButton]}>Done</Text>
+              </TouchableOpacity>
+            </View>
+            <ScrollView style={styles.tagList}>
+              {clothingOccasions.map(occasion => (
+                <TouchableOpacity
+                  key={occasion}
+                  style={[
+                    styles.tagItem,
+                    editOccasions.includes(occasion) && styles.tagItemSelected
+                  ]}
+                  onPress={() => {
+                    setEditOccasions(prev => 
+                      prev.includes(occasion)
+                        ? prev.filter(o => o !== occasion)
+                        : [...prev, occasion]
+                    );
+                  }}
+                >
+                  <Text style={[
+                    styles.tagText,
+                    editOccasions.includes(occasion) && styles.tagTextSelected
+                  ]}>
+                    {occasion.charAt(0).toUpperCase() + occasion.slice(1)}
+                  </Text>
+                </TouchableOpacity>
+              ))}
+            </ScrollView>
           </View>
         </View>
       </Modal>
@@ -455,6 +603,46 @@ const styles = StyleSheet.create({
   disabledButton: {
     backgroundColor: '#D1D5DB',
     opacity: 0.6,
+  },
+  section: {
+    marginTop: 16,
+  },
+  sectionTitle: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#000000',
+    marginBottom: 8,
+  },
+  tagsContainer: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 8,
+  },
+  tag: {
+    backgroundColor: '#F3F4F6',
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 16,
+  },
+  tagText: {
+    fontSize: 14,
+    color: '#000000',
+  },
+  tagList: {
+    padding: 16,
+  },
+  tagItem: {
+    paddingVertical: 12,
+    paddingHorizontal: 16,
+    borderRadius: 8,
+    backgroundColor: '#F3F4F6',
+    marginBottom: 8,
+  },
+  tagItemSelected: {
+    backgroundColor: '#6366F1',
+  },
+  tagTextSelected: {
+    color: '#FFFFFF',
   },
 });
 

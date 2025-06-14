@@ -28,10 +28,13 @@ const SCREEN_WIDTH = Dimensions.get('window').width;
 const SCREEN_HEIGHT = Dimensions.get('window').height;
 
 const clothingCategories = [
-  { id: 'accessories', label: 'Hat/Accessories', icon: 'hat-fedora', types: ['accessories'] },
-  { id: 'shirt', label: 'Top', icon: 'tshirt-crew-outline', types: ['shirt', 'jacket', 'dress'] },
-  { id: 'pants', label: 'Bottom', icon: 'human-handsdown', types: ['pants'] },
+  { id: 'top', label: 'Top', icon: 'tshirt-crew-outline', types: ['top'] },
+  { id: 'bottom', label: 'Bottom', icon: 'human-handsdown', types: ['bottom'] },
+  { id: 'dress', label: 'Dress', icon: 'hanger', types: ['dress'] },
   { id: 'shoes', label: 'Shoes', icon: 'shoe-sneaker', types: ['shoes'] },
+  { id: 'accessory', label: 'Accessory', icon: 'necklace', types: ['accessory'] },
+  { id: 'outerwear', label: 'Outerwear', icon: 'jacket', types: ['outerwear'] },
+  { id: 'bag', label: 'Bag', icon: 'bag-personal', types: ['bag'] },
 ];
 
 const CombineClothesScreen = ({ navigation }) => {

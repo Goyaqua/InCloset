@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import {
   View, Text, StyleSheet, TextInput, TouchableOpacity, Alert,
-  Image, StatusBar, SafeAreaView, Modal, Animated, Dimensions, ActivityIndicator
+  Image, StatusBar, SafeAreaView, Modal, Animated, Dimensions, ActivityIndicator, ScrollView
 } from 'react-native';
 import * as ImagePicker from 'expo-image-picker';
 import * as ImageManipulator from 'expo-image-manipulator';
@@ -14,13 +14,42 @@ import { removeBackground } from '../../services/backgroundRemoval';
 
 const clothingTypes = [
   { label: 'Pick a type', value: '' },
-  { label: 'Shirt', value: 'shirt' },
-  { label: 'Pants', value: 'pants' },
+  { label: 'Top', value: 'top' },
+  { label: 'Bottom', value: 'bottom' },
   { label: 'Dress', value: 'dress' },
-  { label: 'Jacket', value: 'jacket' },
   { label: 'Shoes', value: 'shoes' },
-  { label: 'Accessories', value: 'accessories' },
-  { label: 'Other', value: 'other' },
+  { label: 'Accessory', value: 'accessory' },
+  { label: 'Outerwear', value: 'outerwear' },
+  { label: 'Bag', value: 'bag' },
+];
+
+const clothingStyles = [
+  'casual',
+  'formal',
+  'business',
+  'party',
+  'sporty',
+  'streetwear',
+  'elegant',
+  'romantic',
+  'edgy',
+  'retro',
+  'minimalist'
+];
+
+const clothingOccasions = [
+  'work',
+  'interview',
+  'wedding',
+  'date',
+  'gym',
+  'school',
+  'beach',
+  'holiday',
+  'party',
+  'funeral',
+  'everyday',
+  'chill at home'
 ];
 
 const SCREEN_HEIGHT = Dimensions.get('window').height;
@@ -35,6 +64,10 @@ const AddClothesScreen = ({ navigation }) => {
   const [showBackgroundPreview, setShowBackgroundPreview] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
   const [showPicker, setShowPicker] = useState(false);
+  const [showStylePicker, setShowStylePicker] = useState(false);
+  const [showOccasionPicker, setShowOccasionPicker] = useState(false);
+  const [selectedStyles, setSelectedStyles] = useState([]);
+  const [selectedOccasions, setSelectedOccasions] = useState([]);
   const slideAnim = useState(new Animated.Value(SCREEN_HEIGHT))[0];
   const backdropOpacity = useState(new Animated.Value(0))[0];
 
@@ -219,9 +252,8 @@ const AddClothesScreen = ({ navigation }) => {
 
       // 4. Prepare storage file path - use PNG for processed images to preserve transparency
       const fileExt = processedImage ? 'png' : 'jpg';
-      const fileName = `${Date.now()}.${fileExt}`;
-      const filePath = `${user.id}/${fileName}`;
-      console.log('Prepared file path', filePath);
+      const fileName = `${user.id}/clothes/${Date.now()}.${fileExt}`;
+      console.log('Prepared file path', fileName);
 
       // 5. Read file as base64 & convert to ArrayBuffer (React Native recommended way)
       const base64 = await FileSystem.readAsStringAsync(manipResult.uri, {
@@ -244,7 +276,7 @@ const AddClothesScreen = ({ navigation }) => {
         try {
           const { data: uploadData, error: error } = await supabase.storage
             .from('userclothes')
-            .upload(filePath, arrayBuffer, {
+            .upload(fileName, arrayBuffer, {
               contentType: contentType,
               upsert: false,
               cacheControl: '3600'
@@ -282,7 +314,7 @@ const AddClothesScreen = ({ navigation }) => {
       // 7. Get signed URL
       const { data: { signedUrl }, error: signedUrlError } = await supabase.storage
         .from('userclothes')
-        .createSignedUrl(filePath, 3600); // 1 hour expiry
+        .createSignedUrl(fileName, 3600); // 1 hour expiry
 
       if (signedUrlError) {
         console.error('Signed URL error:', signedUrlError);
@@ -290,7 +322,13 @@ const AddClothesScreen = ({ navigation }) => {
       }
 
       // 8. Save to database
-      const { error: dbError } = await addClothing(name, type, filePath);
+      const { error: dbError } = await addClothing(
+        name,
+        type,
+        fileName,
+        selectedStyles,
+        selectedOccasions
+      );
       if (dbError) {
         console.error('Database error:', dbError);
         throw new Error(`Failed to save clothing item: ${dbError.message}`);
@@ -309,6 +347,22 @@ const AddClothesScreen = ({ navigation }) => {
     } finally {
       setIsSaving(false);
     }
+  };
+
+  const toggleStyle = (style) => {
+    setSelectedStyles(prev => 
+      prev.includes(style)
+        ? prev.filter(s => s !== style)
+        : [...prev, style]
+    );
+  };
+
+  const toggleOccasion = (occasion) => {
+    setSelectedOccasions(prev => 
+      prev.includes(occasion)
+        ? prev.filter(o => o !== occasion)
+        : [...prev, occasion]
+    );
   };
 
   return (
@@ -354,6 +408,34 @@ const AddClothesScreen = ({ navigation }) => {
           <TouchableOpacity style={styles.pickerButton} onPress={showPickerModal}>
             <Text style={[styles.pickerButtonText, !type && styles.pickerPlaceholder]}>
               {type ? clothingTypes.find(item => item.value === type)?.label : 'Pick a type'}
+            </Text>
+          </TouchableOpacity>
+        </View>
+
+        <View style={styles.inputSection}>
+          <Text style={styles.label}>Style</Text>
+          <TouchableOpacity 
+            style={styles.pickerButton} 
+            onPress={() => setShowStylePicker(true)}
+          >
+            <Text style={[styles.pickerButtonText, selectedStyles.length === 0 && styles.pickerPlaceholder]}>
+              {selectedStyles.length > 0 
+                ? `${selectedStyles.length} style${selectedStyles.length > 1 ? 's' : ''} selected`
+                : 'Select styles'}
+            </Text>
+          </TouchableOpacity>
+        </View>
+
+        <View style={styles.inputSection}>
+          <Text style={styles.label}>Occasion</Text>
+          <TouchableOpacity 
+            style={styles.pickerButton} 
+            onPress={() => setShowOccasionPicker(true)}
+          >
+            <Text style={[styles.pickerButtonText, selectedOccasions.length === 0 && styles.pickerPlaceholder]}>
+              {selectedOccasions.length > 0 
+                ? `${selectedOccasions.length} occasion${selectedOccasions.length > 1 ? 's' : ''} selected`
+                : 'Select occasions'}
             </Text>
           </TouchableOpacity>
         </View>
@@ -428,6 +510,76 @@ const AddClothesScreen = ({ navigation }) => {
         </View>
       </Modal>
 
+      {/* Style Picker Modal */}
+      <Modal visible={showStylePicker} transparent animationType="slide">
+        <View style={styles.modalContainer}>
+          <View style={styles.modalContent}>
+            <View style={styles.modalHeader}>
+              <TouchableOpacity onPress={() => setShowStylePicker(false)}>
+                <Text style={styles.modalButtonText}>Cancel</Text>
+              </TouchableOpacity>
+              <TouchableOpacity onPress={() => setShowStylePicker(false)}>
+                <Text style={[styles.modalButtonText, styles.modalDoneButton]}>Done</Text>
+              </TouchableOpacity>
+            </View>
+            <ScrollView style={styles.tagList}>
+              {clothingStyles.map(style => (
+                <TouchableOpacity
+                  key={style}
+                  style={[
+                    styles.tagItem,
+                    selectedStyles.includes(style) && styles.tagItemSelected
+                  ]}
+                  onPress={() => toggleStyle(style)}
+                >
+                  <Text style={[
+                    styles.tagText,
+                    selectedStyles.includes(style) && styles.tagTextSelected
+                  ]}>
+                    {style.charAt(0).toUpperCase() + style.slice(1)}
+                  </Text>
+                </TouchableOpacity>
+              ))}
+            </ScrollView>
+          </View>
+        </View>
+      </Modal>
+
+      {/* Occasion Picker Modal */}
+      <Modal visible={showOccasionPicker} transparent animationType="slide">
+        <View style={styles.modalContainer}>
+          <View style={styles.modalContent}>
+            <View style={styles.modalHeader}>
+              <TouchableOpacity onPress={() => setShowOccasionPicker(false)}>
+                <Text style={styles.modalButtonText}>Cancel</Text>
+              </TouchableOpacity>
+              <TouchableOpacity onPress={() => setShowOccasionPicker(false)}>
+                <Text style={[styles.modalButtonText, styles.modalDoneButton]}>Done</Text>
+              </TouchableOpacity>
+            </View>
+            <ScrollView style={styles.tagList}>
+              {clothingOccasions.map(occasion => (
+                <TouchableOpacity
+                  key={occasion}
+                  style={[
+                    styles.tagItem,
+                    selectedOccasions.includes(occasion) && styles.tagItemSelected
+                  ]}
+                  onPress={() => toggleOccasion(occasion)}
+                >
+                  <Text style={[
+                    styles.tagText,
+                    selectedOccasions.includes(occasion) && styles.tagTextSelected
+                  ]}>
+                    {occasion.charAt(0).toUpperCase() + occasion.slice(1)}
+                  </Text>
+                </TouchableOpacity>
+              ))}
+            </ScrollView>
+          </View>
+        </View>
+      </Modal>
+
       {/* Save Loading Overlay */}
       {isSaving && (
         <View style={styles.savingOverlay}>
@@ -456,7 +608,6 @@ const AddClothesScreen = ({ navigation }) => {
     </SafeAreaView>
   );
 };
-
 
 const styles = StyleSheet.create({
   container: {
@@ -745,6 +896,26 @@ const styles = StyleSheet.create({
   savingSubtext: {
     fontSize: 16,
     color: '#9CA3AF',
+  },
+  tagList: {
+    padding: 16,
+  },
+  tagItem: {
+    paddingVertical: 12,
+    paddingHorizontal: 16,
+    borderRadius: 8,
+    backgroundColor: '#F3F4F6',
+    marginBottom: 8,
+  },
+  tagItemSelected: {
+    backgroundColor: '#6366F1',
+  },
+  tagText: {
+    fontSize: 16,
+    color: '#000000',
+  },
+  tagTextSelected: {
+    color: '#FFFFFF',
   },
 });
 
