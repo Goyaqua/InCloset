@@ -227,7 +227,10 @@ const CombineClothesScreen = ({ navigation }) => {
       if (error) throw error;
 
       resetOutfit();
-      navigation.navigate('Home', { refresh: true });
+      navigation.navigate('Home', { 
+        screen: 'HomeScreen',
+        params: { refresh: true }
+      });
       Alert.alert('Success', 'Outfit saved successfully!');
 
     } catch (error) {

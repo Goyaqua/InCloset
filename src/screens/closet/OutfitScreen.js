@@ -109,11 +109,18 @@ const OutfitScreen = ({ route, navigation }) => {
 
   const handleToggleFavorite = async () => {
     try {
-      const { error } = await toggleFavorite(outfitId);
+      const { data, error } = await toggleFavorite(outfitId);
       if (error) throw error;
       
       // Update the outfit's favorite status locally
-      loadOutfit();
+      setOutfit(prev => ({ ...prev, isFavorite: data.isFavorite }));
+      
+      // Show feedback
+      Alert.alert(
+        data.isFavorite ? 'Added to Favorites' : 'Removed from Favorites',
+        data.isFavorite ? 'The outfit has been added to your favorites.' : 'The outfit has been removed from your favorites.',
+        [{ text: 'OK' }]
+      );
       
       // Navigate back to home with refresh parameter
       navigation.navigate('Home', { 
@@ -122,7 +129,7 @@ const OutfitScreen = ({ route, navigation }) => {
       });
     } catch (error) {
       console.error('Error toggling favorite:', error);
-      Alert.alert('Error', 'Failed to update favorite status');
+      Alert.alert('Error', 'Failed to update favorite status. Please try again.');
     }
   };
 

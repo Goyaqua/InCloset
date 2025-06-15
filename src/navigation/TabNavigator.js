@@ -37,8 +37,8 @@ const defaultStackOptions = {
   headerStyle: { backgroundColor: '#FFFFFF' },
   headerShadowVisible: false,
   headerTintColor: colors.primary,
-  animationEnabled: true,
-  animation: 'slide_from_right',
+  animationEnabled: false,
+  presentation: 'card',
 };
 
 // Stack navigators

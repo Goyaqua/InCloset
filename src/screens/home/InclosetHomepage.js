@@ -1,57 +1,80 @@
-import React, { useState, useEffect } from 'react';
-import { View, Text, StyleSheet, SafeAreaView, ScrollView, ActivityIndicator } from 'react-native';
-import { colors, spacing } from '../../styles/theme';
+import React, { useState, useEffect, useCallback } from 'react';
+import { View, Text, StyleSheet, SafeAreaView, ScrollView, ActivityIndicator, Alert } from 'react-native';
+import { colors, spacing, typography } from '../../styles/theme';
 import OutfitSection from '../../components/specific/home/OutfitSection';
 import AllClothesSection from '../../components/specific/home/AllClothesSection';
+import AIRequestSection from '../../components/specific/home/AIRequestSection';
 import { getOutfits, getFavorites, getClothes, deleteOutfit, toggleFavorite } from '../../services/supabase/data';
 
-const InclosetHomepage = ({ navigation }) => {
+const InclosetHomepage = ({ navigation, route }) => {
   const [loading, setLoading] = useState(true);
   const [savedOutfits, setSavedOutfits] = useState([]);
   const [favoriteOutfits, setFavoriteOutfits] = useState([]);
   const [clothes, setClothes] = useState([]);
+  const [lastRefresh, setLastRefresh] = useState(Date.now());
 
-  useEffect(() => {
-    loadData();
+  const loadData = useCallback(async (forceRefresh = false) => {
+    // Don't refresh if it's been less than 30 seconds and not forced
+    if (!forceRefresh && Date.now() - lastRefresh < 30000) {
+      return;
+    }
 
-    // Add navigation listener for when screen comes into focus
-    const unsubscribe = navigation.addListener('focus', (e) => {
-      // Check for refresh param in route
-      const refresh = navigation.getState().routes
-        .find(route => route.name === 'Home')?.params?.refresh;
-      if (refresh) {
-        loadData();
-        // Clear the refresh param
-        navigation.setParams({ refresh: undefined });
-      }
-    });
-
-    return unsubscribe;
-  }, [navigation]);
-
-  const loadData = async () => {
     try {
       setLoading(true);
       const [outfitsRes, favoritesRes, clothesRes] = await Promise.all([
         getOutfits(),
         getFavorites(),
-        getClothes()
+        getClothes(5) // Only fetch first 5 clothes
       ]);
 
       if (outfitsRes.error) throw outfitsRes.error;
       if (favoritesRes.error) throw favoritesRes.error;
       if (clothesRes.error) throw clothesRes.error;
 
-      setSavedOutfits(outfitsRes.data || []);
-      setFavoriteOutfits(favoritesRes.data || []);
+      const saved = outfitsRes.data || [];
+      const favorites = favoritesRes.data || [];
+
+      // Create a set of favorite outfit IDs for quick lookup
+      const favoriteOutfitIds = new Set(favorites.map(fav => fav.id));
+
+      // Add an isFavorite flag to saved outfits
+      const savedOutfitsWithFavoriteFlag = saved.map(outfit => ({
+        ...outfit,
+        isFavorite: favoriteOutfitIds.has(outfit.id)
+      }));
+
+      setSavedOutfits(savedOutfitsWithFavoriteFlag);
+      setFavoriteOutfits(favorites);
       setClothes(clothesRes.data || []);
+      setLastRefresh(Date.now());
     } catch (error) {
       console.error('Error loading data:', error);
-      // You might want to show an error message to the user here
     } finally {
       setLoading(false);
     }
-  };
+  }, [lastRefresh]);
+
+  // Initial load
+  useEffect(() => {
+    loadData(true);
+  }, []);
+
+  // Focus listener with debounce
+  useEffect(() => {
+    const unsubscribe = navigation.addListener('focus', () => {
+      loadData();
+    });
+
+    return unsubscribe;
+  }, [navigation, loadData]);
+
+  // Route params listener
+  useEffect(() => {
+    if (route.params?.refresh) {
+      loadData(true);
+      navigation.setParams({ refresh: undefined });
+    }
+  }, [route.params?.refresh, loadData]);
 
   const handleOutfitPress = (outfitId) => {
     navigation.navigate('OutfitScreen', { outfitId });
@@ -74,12 +97,40 @@ const InclosetHomepage = ({ navigation }) => {
 
   const handleToggleFavorite = async (outfitId) => {
     try {
-      const { error } = await toggleFavorite(outfitId);
+      const { data, error } = await toggleFavorite(outfitId);
       if (error) throw error;
-      await loadData(); // Reload data after toggling favorite
+      
+      // Find the outfit in either saved or favorite outfits
+      const outfit = savedOutfits.find(o => o.id === outfitId) || favoriteOutfits.find(o => o.id === outfitId);
+      if (!outfit) return;
+      
+      // Update local state based on the response
+      if (data.isFavorite) {
+        // Add to favorites
+        setFavoriteOutfits(prev => [...prev, { ...outfit, isFavorite: true }]);
+        setSavedOutfits(prev => prev.map(o => 
+          o.id === outfitId ? { ...o, isFavorite: true } : o
+        ));
+      } else {
+        // Remove from favorites
+        setFavoriteOutfits(prev => prev.filter(o => o.id !== outfitId));
+        setSavedOutfits(prev => prev.map(o => 
+          o.id === outfitId ? { ...o, isFavorite: false } : o
+        ));
+      }
+      
+      // Show feedback
+      Alert.alert(
+        data.isFavorite ? 'Added to Favorites' : 'Removed from Favorites',
+        data.isFavorite ? 'The outfit has been added to your favorites.' : 'The outfit has been removed from your favorites.',
+        [{ text: 'OK' }]
+      );
+      
+      // Reload data in the background
+      loadData(true);
     } catch (error) {
       console.error('Error toggling favorite:', error);
-      // Show error message to user
+      Alert.alert('Error', 'Failed to update favorite status. Please try again.');
     }
   };
 
@@ -121,6 +172,8 @@ const InclosetHomepage = ({ navigation }) => {
           <Text style={styles.greeting}>Hello User!</Text>
         </View>
 
+        <AIRequestSection style={{ marginHorizontal: spacing.lg, marginBottom: spacing.md }} />
+
         <OutfitSection
           title="SAVED OUTFITS"
           outfits={savedOutfits}
@@ -130,7 +183,9 @@ const InclosetHomepage = ({ navigation }) => {
           onFavorite={handleToggleFavorite}
           onSectionPress={handleSavedOutfitsPress}
           backgroundColor={colors.container1}
-          itemContainerColor1={colors.textcontainer1}
+          itemContainerColor={colors.itemcontainer1}
+          textColor={colors.textcontainer1}
+          style={{ marginHorizontal: spacing.lg, marginBottom: spacing.md }}
         />
 
         <OutfitSection
@@ -142,7 +197,10 @@ const InclosetHomepage = ({ navigation }) => {
           onFavorite={handleToggleFavorite}
           onSectionPress={handleFavoriteOutfitsPress}
           backgroundColor={colors.container2}
-          itemContainerColor2={colors.textcontainer2}
+          itemContainerColor={colors.itemcontainer2}
+          textColor={colors.textcontainer2}
+          forceFavoriteIcon={true}
+          style={{ marginHorizontal: spacing.lg, marginBottom: spacing.md }}
         />
 
         <AllClothesSection
@@ -150,6 +208,7 @@ const InclosetHomepage = ({ navigation }) => {
           onItemPress={handleClothingPress}
           onSeeAllPress={handleSeeAll}
           onAddPress={handleAddClothes}
+          style={{ marginHorizontal: spacing.lg, marginBottom: spacing.md }}
         />
       </ScrollView>
     </SafeAreaView>
@@ -175,14 +234,14 @@ const styles = StyleSheet.create({
     paddingBottom: spacing.md,
   },
   title: {
-    fontSize: 32,
-    fontWeight: 'bold',
-    letterSpacing: 2,
+    fontSize: typography.title.fontSize,
+    fontWeight: typography.title.fontWeight,
+    letterSpacing: typography.title.letterSpacing,
     marginBottom: spacing.xs,
   },
   greeting: {
-    fontSize: 16,
-    fontWeight: '400',
+    fontSize: typography.subtitle.fontSize,
+    fontWeight: typography.subtitle.fontWeight,
     color: colors.textSecondary,
   },
   scrollContent: {

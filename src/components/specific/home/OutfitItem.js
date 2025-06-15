@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import {
   View,
   Text,
@@ -9,10 +9,14 @@ import {
 } from 'react-native';
 import { colors, spacing, layout, typography } from '../../../styles/theme';
 import { MaterialIcons } from '@expo/vector-icons';
+import { Ionicons } from '@expo/vector-icons';
 import { supabase } from '../../../services/supabase/auth';
 
 const { width } = Dimensions.get('window');
 const ITEM_WIDTH = width * 0.35;
+
+// Cache for signed URLs
+const urlCache = new Map();
 
 const OutfitItem = ({ 
   title, 
@@ -20,43 +24,52 @@ const OutfitItem = ({
   onPress, 
   onFavorite, 
   isFavorite, 
-  containerColor 
+  containerColor,
+  textColor
 }) => {
   const [imageUrl, setImageUrl] = useState(null);
 
-  useEffect(() => {
-    const getSignedUrl = async () => {
-      try {
-        if (!image) return;
-        
-        // Log the image path for debugging
-        console.log('Attempting to get signed URL for image:', image);
-        
-        const { data, error } = await supabase.storage
-          .from('userclothes')
-          .createSignedUrl(image, 3600); // 1 hour expiry
-        
-        if (error) {
-          console.error('Error getting signed URL:', error);
+  const getSignedUrl = useCallback(async () => {
+    try {
+      if (!image) return;
+      
+      // Check cache first
+      if (urlCache.has(image)) {
+        const cachedData = urlCache.get(image);
+        if (Date.now() < cachedData.expiry) {
+          setImageUrl(cachedData.url);
           return;
         }
-        
-        if (data?.signedUrl) {
-          console.log('Successfully got signed URL');
-          setImageUrl(data.signedUrl);
-        } else {
-          console.log('No signed URL in response');
-        }
-      } catch (error) {
-        console.error('Error in getSignedUrl:', error);
       }
-    };
-
-    getSignedUrl();
+      
+      const { data, error } = await supabase.storage
+        .from('userclothes')
+        .createSignedUrl(image, 3600); // 1 hour expiry
+      
+      if (error) {
+        console.error('Error getting signed URL:', error);
+        return;
+      }
+      
+      if (data?.signedUrl) {
+        // Cache the URL with expiry
+        urlCache.set(image, {
+          url: data.signedUrl,
+          expiry: Date.now() + (3600 * 1000) // 1 hour from now
+        });
+        setImageUrl(data.signedUrl);
+      }
+    } catch (error) {
+      console.error('Error in getSignedUrl:', error);
+    }
   }, [image]);
 
+  useEffect(() => {
+    getSignedUrl();
+  }, [getSignedUrl]);
+
   return (
-    <View style={styles.container}>
+    <View style={[styles.container, { backgroundColor: containerColor }]}>
       <TouchableOpacity style={styles.content} onPress={onPress} activeOpacity={0.8}>
         <View style={styles.imagesContainer}>
           {imageUrl ? (
@@ -74,8 +87,16 @@ const OutfitItem = ({
         </View>
       </TouchableOpacity>
       
+      <TouchableOpacity style={styles.favoriteButton} onPress={onFavorite}>
+        <Ionicons
+          name={isFavorite ? "heart" : "heart-outline"}
+          size={24}
+          color={isFavorite ? colors.danger : colors.textSecondary}
+        />
+      </TouchableOpacity>
+
       <View style={styles.footer}>
-        <Text style={styles.title} numberOfLines={1}>
+        <Text style={[styles.title, { color: textColor }]} numberOfLines={1}>
           {title}
         </Text>
       </View>
@@ -86,8 +107,7 @@ const OutfitItem = ({
 const styles = StyleSheet.create({
   container: {
     width: ITEM_WIDTH,
-    marginRight: spacing.md,
-
+    borderRadius: layout.borderRadius,
     padding: spacing.sm,
   },
   content: {
@@ -100,12 +120,20 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     position: 'relative',
+    borderRadius: layout.borderRadius,
+    overflow: 'hidden',
   },
   image: {
     width: '100%',
     height: '100%',
     resizeMode: 'cover',
-    borderRadius: layout.borderRadius,
+  },
+  favoriteButton: {
+    position: 'absolute',
+    top: spacing.sm,
+    right: spacing.sm,
+    zIndex: 1,
+    padding: spacing.xs,
   },
   footer: {
     flexDirection: 'row',
@@ -116,7 +144,6 @@ const styles = StyleSheet.create({
   },
   title: {
     ...typography.caption,
-    color: colors.text,
     textAlign: 'center',
     fontSize: 14,
   },

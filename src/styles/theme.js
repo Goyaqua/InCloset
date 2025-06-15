@@ -14,6 +14,12 @@ export const colors = {
   itemcontainer2: '#ABDBA5',
   textcontainer1: '#321562',
   textcontainer2: '#004F2E',
+  lightBlueBackground: '#e0f6ff',
+  blue: '#4a90e2',
+  white: '#FFFFFF',
+  darkBlue: '#1A2B4C',
+  inputFrameBackground: '#f0f8ff',
+  placeholderText: '#A9A9A9',
 };
 
 export const spacing = {

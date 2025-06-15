@@ -1,7 +1,7 @@
 import { supabase } from './auth';
 
 // Clothes functions
-export const getClothes = async () => {
+export const getClothes = async (limit = null) => {
   try {
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) {
@@ -9,11 +9,17 @@ export const getClothes = async () => {
       return { data: [], error: null };
     }
 
-    const { data: clothes, error } = await supabase
+    let query = supabase
       .from('clothes')
       .select('*')
       .eq('user_id', user.id)
       .order('created_at', { ascending: false });
+
+    if (limit) {
+      query = query.limit(limit);
+    }
+    
+    const { data: clothes, error } = await query;
     
     if (error) throw error;
     return { data: clothes || [], error: null };
@@ -33,7 +39,7 @@ export const addClothing = async (name, type, filePath, styles = [], occasions =
       .insert([{ 
         name,
         type,
-        image_path: filePath,
+        enimage_path: filePath,
         user_id: user.id,
         created_at: new Date().toISOString(),
         styles,
@@ -200,27 +206,40 @@ export const addOutfit = async (name, clothingIds, imagePath) => {
   }
 };
 
-export const deleteOutfit = async (id) => {
+export const deleteOutfit = async (outfitId) => {
   try {
-    // First delete all outfit items associated with this outfit
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) throw new Error('User not authenticated');
+
+    // First delete ALL favorites referencing this outfit (not just for current user)
+    const { error: favoritesError } = await supabase
+      .from('favourites')
+      .delete()
+      .eq('outfit_id', outfitId);
+
+    if (favoritesError) throw favoritesError;
+
+    // Then delete the outfit items
     const { error: itemsError } = await supabase
       .from('outfit_items')
       .delete()
-      .eq('outfit_id', id);
-    
+      .eq('outfit_id', outfitId);
+
     if (itemsError) throw itemsError;
 
-    // Then delete the outfit itself
+    // Finally delete the outfit itself
     const { error: outfitError } = await supabase
       .from('outfits')
       .delete()
-      .eq('id', id);
-    
+      .eq('id', outfitId)
+      .eq('user_id', user.id);
+
     if (outfitError) throw outfitError;
-    
-    return { error: null };
+
+    return { data: null, error: null };
   } catch (error) {
-    return { error };
+    console.error('Error deleting outfit:', error);
+    return { data: null, error };
   }
 };
 
@@ -236,29 +255,39 @@ export const getFavorites = async () => {
     const { data: favorites, error } = await supabase
       .from('favourites')
       .select(`
-        outfit_id,
-        outfits!inner(
-          *,
+        *,
+        outfits!left(
+          id,
+          name,
+          image_path,
+          user_id,
+          created_at,
           outfit_items(
-            clothes(*)
+            clothes(
+              id,
+              image_path
+            )
           )
         )
       `)
-      .eq('outfits.user_id', user.id)
+      .eq('user_id', user.id)
       .order('created_at', { ascending: false });
     
     if (error) throw error;
 
     // Transform the data to match the expected format
-    const transformedFavorites = favorites.map(favorite => ({
-      id: favorite.outfits.id,
-      title: favorite.outfits.name,
-      image: favorite.outfits.image_path,
-      items: favorite.outfits.outfit_items?.map(item => ({
-        id: item.clothes?.id,
-        image: item.clothes?.image_path
-      })) || []
-    }));
+    const transformedFavorites = favorites
+      .filter(favorite => favorite.outfits) // Filter out any null outfits
+      .map(favorite => ({
+        id: favorite.outfits.id,
+        title: favorite.outfits.name,
+        image: favorite.outfits.image_path,
+        isFavorite: true,
+        items: favorite.outfits.outfit_items?.map(item => ({
+          id: item.clothes?.id,
+          image: item.clothes?.image_path
+        })) || []
+      }));
 
     return { data: transformedFavorites, error: null };
   } catch (error) {
@@ -267,37 +296,68 @@ export const getFavorites = async () => {
   }
 };
 
+export const isOutfitFavorited = async (outfitId) => {
+  try {
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) return { data: false, error: null };
+
+    const { data, error } = await supabase
+      .from('favourites')
+      .select('id')
+      .eq('outfit_id', outfitId)
+      .eq('user_id', user.id)
+      .maybeSingle();
+
+    if (error) throw error;
+    return { data: !!data, error: null };
+  } catch (error) {
+    console.error('Error checking favorite status:', error);
+    return { data: false, error };
+  }
+};
+
 export const toggleFavorite = async (outfitId) => {
   try {
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) return { data: null, error: new Error('User not authenticated') };
+
     // First check if the outfit is already favorited
     const { data: existing, error: checkError } = await supabase
       .from('favourites')
-      .select()
+      .select('id')
       .eq('outfit_id', outfitId)
-      .single();
+      .eq('user_id', user.id)
+      .maybeSingle();
     
-    if (checkError && checkError.code !== 'PGRST116') throw checkError;
+    if (checkError) throw checkError;
 
     if (existing) {
       // Remove from favorites
       const { error: deleteError } = await supabase
         .from('favourites')
         .delete()
-        .eq('outfit_id', outfitId);
+        .eq('id', existing.id);
       
       if (deleteError) throw deleteError;
+      return { data: { isFavorite: false }, error: null };
     } else {
       // Add to favorites
-      const { error: insertError } = await supabase
+      const { data: newFavorite, error: insertError } = await supabase
         .from('favourites')
-        .insert([{ outfit_id: outfitId }]);
+        .insert([{ 
+          outfit_id: outfitId, 
+          user_id: user.id,
+          created_at: new Date().toISOString()
+        }])
+        .select()
+        .single();
       
       if (insertError) throw insertError;
+      return { data: { isFavorite: true }, error: null };
     }
-
-    return { error: null };
   } catch (error) {
-    return { error };
+    console.error('Error in toggleFavorite:', error);
+    return { data: null, error };
   }
 };
 

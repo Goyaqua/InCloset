@@ -4,6 +4,7 @@ import { colors, spacing } from '../../../styles/theme';
 import { PanGestureHandler } from 'react-native-gesture-handler';
 import OutfitItem from './OutfitItem';
 import AddOutfitButton from './AddOutfitButton';
+import { Ionicons } from '@expo/vector-icons';
 
 const { width } = Dimensions.get('window');
 const ITEM_WIDTH = width * 0.35; // Match OutfitItem width
@@ -16,8 +17,9 @@ const OutfitSection = ({
   onFavorite,
   onSectionPress,
   backgroundColor,
-  itemContainerColor1,
-  itemContainerColor2
+  itemContainerColor,
+  textColor,
+  forceFavoriteIcon = false
 }) => {
   const data = [...outfits, { id: 'add-button', isAddButton: true }];
   const scrollViewRef = useRef(null);
@@ -35,7 +37,7 @@ const OutfitSection = ({
         <View style={styles.outfitItemWrapper}>
           <AddOutfitButton 
             onPress={onAddPress} 
-            containerColor={itemContainerColor1 || itemContainerColor2}
+            containerColor={itemContainerColor}
           />
         </View>
       );
@@ -47,39 +49,39 @@ const OutfitSection = ({
           image={item.image}
           onPress={() => onOutfitPress(item.id)}
           onFavorite={() => onFavorite(item.id)}
-          isFavorite={title.toLowerCase().includes('favourite')}
-          containerColor={itemContainerColor1 || itemContainerColor2}
+          isFavorite={forceFavoriteIcon || item.isFavorite}
+          containerColor={itemContainerColor}
+          textColor={textColor}
         />
       </View>
     );
   };
 
   return (
-    <TouchableOpacity 
-      style={[styles.container, { backgroundColor }]}
-      onPress={onSectionPress}
-      activeOpacity={0.8}
-    >
-      <View style={styles.header}>
-        <Text style={[styles.title, { color: itemContainerColor1 || itemContainerColor2 }]}>{title}</Text>
-        <Text style={styles.count}>{outfits.length} outfits</Text>
-      </View>
+    <View style={[styles.container, { backgroundColor }]}>
+      <TouchableOpacity style={styles.header} onPress={onSectionPress}>
+        <Text style={[styles.title, { color: textColor }]}>{title}</Text>
+        <View style={styles.seeAllContainer}>
+          <Text style={[styles.seeAllText, { color: textColor }]}>SEE ALL</Text>
+          <Ionicons name="chevron-forward" size={20} color={textColor} />
+        </View>
+      </TouchableOpacity>
       <PanGestureHandler onGestureEvent={onGestureEvent}>
-          <ScrollView
-            ref={scrollViewRef}
-            horizontal
-            showsHorizontalScrollIndicator={false}
-            contentContainerStyle={styles.scrollContent}
-            bounces={false}
-          >
-            {data.map((item) => (
-              <View key={item.id.toString()}>
-                {renderItem(item)}
-              </View>
-            ))}
-          </ScrollView>
-        </PanGestureHandler>
-    </TouchableOpacity>
+        <ScrollView
+          ref={scrollViewRef}
+          horizontal
+          showsHorizontalScrollIndicator={false}
+          contentContainerStyle={styles.scrollContent}
+          bounces={false}
+        >
+          {data.map((item) => (
+            <View key={item.id.toString()}>
+              {renderItem(item)}
+            </View>
+          ))}
+        </ScrollView>
+      </PanGestureHandler>
+    </View>
   );
 };
 
@@ -96,6 +98,7 @@ const styles = StyleSheet.create({
   header: {
     flexDirection: 'row',
     alignItems: 'center',
+    justifyContent: 'space-between',
     paddingHorizontal: spacing.sm,
     marginBottom: spacing.md,
   },
@@ -105,10 +108,14 @@ const styles = StyleSheet.create({
     letterSpacing: 1,
     flex: 1,
   },
-  count: {
+  seeAllContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  seeAllText: {
     fontSize: 14,
-    fontWeight: '500',
-    color: colors.textSecondary,
+    fontWeight: 'bold',
+    marginRight: spacing.xs,
   },
   scrollContent: {
     paddingHorizontal: spacing.sm,

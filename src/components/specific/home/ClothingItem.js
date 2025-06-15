@@ -3,7 +3,7 @@ import { TouchableOpacity, Image, StyleSheet, Text, View } from 'react-native';
 import { colors, spacing, layout, typography } from '../../../styles/theme';
 import { supabase } from '../../../services/supabase/auth';
 
-const ClothingItem = ({ imagePath, name, onPress, selected, styles: itemStyles, occasions }) => {
+const ClothingItem = ({ imagePath, name, onPress }) => {
   const [imageUrl, setImageUrl] = useState(null);
 
   useEffect(() => {
@@ -55,7 +55,7 @@ const ClothingItem = ({ imagePath, name, onPress, selected, styles: itemStyles, 
       onPress={onPress}
       activeOpacity={0.8}
     >
-      <View style={[styles.imageContainer, selected && styles.selectedContainer]}>
+      <View style={styles.imageContainer}>
         {imageUrl && (
           <Image
             source={{ uri: imageUrl }}
@@ -63,19 +63,10 @@ const ClothingItem = ({ imagePath, name, onPress, selected, styles: itemStyles, 
             resizeMode="contain"
           />
         )}
-        {selected && (
-          <View style={styles.selectedOverlay}>
-            <View style={styles.checkmark}>
-              <Text style={styles.checkmarkText}>✓</Text>
-            </View>
-          </View>
-        )}
       </View>
-      <Text style={[styles.name, selected && styles.selectedName]} numberOfLines={2}>
+      <Text style={styles.name} numberOfLines={1}>
         {name}
       </Text>
-      {renderTags(itemStyles)}
-      {renderTags(occasions)}
     </TouchableOpacity>
   );
 };
@@ -84,7 +75,7 @@ const styles = StyleSheet.create({
   container: {
     width: '100%',
     alignItems: 'center',
-    marginBottom: spacing.sm,
+    marginBottom: spacing.md,
   },
   imageContainer: {
     width: '100%',
@@ -95,16 +86,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     marginBottom: spacing.sm,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.08,
-    shadowRadius: 4,
-    elevation: 2,
     overflow: 'hidden',
-  },
-  selectedContainer: {
-    borderWidth: 2,
-    borderColor: colors.primary,
   },
   image: {
     width: '100%',
@@ -113,38 +95,11 @@ const styles = StyleSheet.create({
   },
   name: {
     ...typography.caption,
-    fontSize: 13,
+    fontSize: 14,
     color: colors.text,
     textAlign: 'center',
-    lineHeight: 16,
-    fontWeight: '500',
-  },
-  selectedName: {
-    color: colors.primary,
-    fontWeight: '600',
-  },
-  selectedOverlay: {
-    position: 'absolute',
-    top: 0,
-    left: 0,
-    right: 0,
-    bottom: 0,
-    backgroundColor: colors.primary + '20',
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  checkmark: {
-    width: 24,
-    height: 24,
-    borderRadius: 12,
-    backgroundColor: colors.primary,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  checkmarkText: {
-    color: colors.background,
-    fontSize: 16,
     fontWeight: 'bold',
+    marginTop: spacing.xs,
   },
   tagsContainer: {
     flexDirection: 'row',

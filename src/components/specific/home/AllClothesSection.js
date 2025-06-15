@@ -3,6 +3,7 @@ import { View, Text, StyleSheet, FlatList, TouchableOpacity } from 'react-native
 import { colors, spacing } from '../../../styles/theme';
 import ClothingItem from './ClothingItem';
 import AddItemButton from '../closet/AddItemButton';
+import { Ionicons } from '@expo/vector-icons';
 
 const AllClothesSection = ({ clothes, onItemPress, onSeeAllPress, onAddPress }) => {
   const renderItem = ({ item }) => {
@@ -35,8 +36,9 @@ const AllClothesSection = ({ clothes, onItemPress, onSeeAllPress, onAddPress }) 
     <View style={styles.container}>
       <View style={styles.header}>
         <Text style={styles.title}>ALL CLOTHES</Text>
-        <TouchableOpacity onPress={onSeeAllPress}>
-          <Text style={styles.seeAll}>See All</Text>
+        <TouchableOpacity onPress={onSeeAllPress} style={styles.seeAllContainer}>
+          <Text style={styles.seeAll}>SEE ALL</Text>
+          <Ionicons name="chevron-forward" size={20} color={colors.primary} />
         </TouchableOpacity>
       </View>
 
@@ -62,14 +64,18 @@ const AllClothesSection = ({ clothes, onItemPress, onSeeAllPress, onAddPress }) 
 
 const styles = StyleSheet.create({
   container: {
-    paddingVertical: spacing.lg,
-    backgroundColor: colors.container3,
+    backgroundColor: colors.background,
+    borderRadius: spacing.md,
+    marginHorizontal: spacing.lg,
+    paddingTop: spacing.lg,
+    paddingBottom: spacing.lg,
+    marginBottom: spacing.lg,
   },
   header: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    paddingHorizontal: spacing.lg,
+    paddingHorizontal: spacing.sm,
     marginBottom: spacing.md,
   },
   title: {
@@ -77,14 +83,19 @@ const styles = StyleSheet.create({
     fontWeight: 'bold',
     letterSpacing: 2,
   },
+  seeAllContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
   seeAll: {
-    fontSize: 16,
-    fontWeight: '400',
+    fontSize: 14,
+    fontWeight: 'bold',
+    marginRight: spacing.xs,
     color: colors.primary,
   },
   gridContainer: {
     flex: 1,
-    paddingHorizontal: spacing.lg,
+    paddingHorizontal: spacing.sm,
   },
   listContainer: {
     paddingHorizontal: 0,
@@ -94,7 +105,7 @@ const styles = StyleSheet.create({
     marginBottom: spacing.lg,
   },
   clothingItem: {
-    width: '30%', // Reduced from 32% to create more space between items
+    width: '30%',
     alignItems: 'center',
     height: 160,
   },
