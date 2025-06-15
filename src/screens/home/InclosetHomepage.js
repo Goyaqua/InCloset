@@ -1,12 +1,11 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, StyleSheet, SafeAreaView, ActivityIndicator, FlatList } from 'react-native';
+import { View, Text, StyleSheet, SafeAreaView, ScrollView, ActivityIndicator } from 'react-native';
 import { colors, spacing } from '../../styles/theme';
 import OutfitSection from '../../components/specific/home/OutfitSection';
 import AllClothesSection from '../../components/specific/home/AllClothesSection';
-import InclosetAIAssistantSection from '../../components/specific/home/InclosetAIAssistantSection';
 import { getOutfits, getFavorites, getClothes, deleteOutfit, toggleFavorite } from '../../services/supabase/data';
 
-const InclosetHomepage = ({ navigation, route }) => {
+const InclosetHomepage = ({ navigation }) => {
   const [loading, setLoading] = useState(true);
   const [savedOutfits, setSavedOutfits] = useState([]);
   const [favoriteOutfits, setFavoriteOutfits] = useState([]);
@@ -14,12 +13,17 @@ const InclosetHomepage = ({ navigation, route }) => {
 
   useEffect(() => {
     loadData();
-  }, []);
 
-  // Add focus listener to refresh data when returning to this screen
-  useEffect(() => {
-    const unsubscribe = navigation.addListener('focus', () => {
-      loadData();
+    // Add navigation listener for when screen comes into focus
+    const unsubscribe = navigation.addListener('focus', (e) => {
+      // Check for refresh param in route
+      const refresh = navigation.getState().routes
+        .find(route => route.name === 'Home')?.params?.refresh;
+      if (refresh) {
+        loadData();
+        // Clear the refresh param
+        navigation.setParams({ refresh: undefined });
+      }
     });
 
     return unsubscribe;
@@ -50,14 +54,11 @@ const InclosetHomepage = ({ navigation, route }) => {
   };
 
   const handleOutfitPress = (outfitId) => {
-    // Navigate to outfit detail screen
-    console.log('Navigate to outfit:', outfitId);
+    navigation.navigate('OutfitScreen', { outfitId });
   };
 
-  const handleAddOutfit = async (section) => {
-    // Navigate to create outfit screen
-    console.log('Navigate to create outfit for section:', section);
-    navigation.navigate('Combine'); // Navigate to the Combine page
+  const handleAddOutfit = (section) => {
+    navigation.navigate('Combine');
   };
 
   const handleDeleteOutfit = async (outfitId) => {
@@ -82,45 +83,25 @@ const InclosetHomepage = ({ navigation, route }) => {
     }
   };
 
+  const handleSavedOutfitsPress = () => {
+    navigation.navigate('SavedOutfits', { type: 'saved' });
+  };
+
+  const handleFavoriteOutfitsPress = () => {
+    navigation.navigate('SavedOutfits', { type: 'favorite' });
+  };
+
   const handleClothingPress = (itemId) => {
-    // Navigate to clothing detail screen
-    console.log('Navigate to clothing:', itemId);
+    navigation.navigate('ClothingDetails', { itemId });
   };
 
   const handleSeeAll = () => {
-    // Navigate to all clothes screen
-    console.log('Navigate to all clothes');
+    navigation.navigate('Closet');
   };
 
-  const renderHeader = () => (
-    <View style={styles.header}>
-      <Text style={styles.title}>INCLOSET</Text>
-      <Text style={styles.greeting}>Hello User!</Text>
-    </View>
-  );
-
-  const renderContent = () => (
-    <View style={styles.contentContainer}>
-      <InclosetAIAssistantSection />
-
-      <OutfitSection
-        title="SAVED OUTFITS"
-        outfits={savedOutfits}
-        onOutfitPress={handleOutfitPress}
-        onAddPress={() => handleAddOutfit('saved')}
-        onDelete={handleDeleteOutfit}
-        onFavorite={handleToggleFavorite}
-        backgroundColor={colors.container1}
-        itemContainerColor1={colors.textcontainer1}
-      />
-
-      <AllClothesSection
-        clothes={clothes}
-        onItemPress={handleClothingPress}
-        onSeeAllPress={handleSeeAll}
-      />
-    </View>
-  );
+  const handleAddClothes = () => {
+    navigation.navigate('AddClothes');
+  };
 
   if (loading) {
     return (
@@ -134,23 +115,58 @@ const InclosetHomepage = ({ navigation, route }) => {
 
   return (
     <SafeAreaView style={styles.container}>
-      <FlatList
-        data={[{ key: 'content' }]}
-        renderItem={renderContent}
-        ListHeaderComponent={renderHeader}
-        showsVerticalScrollIndicator={false}
-        contentContainerStyle={styles.scrollContent}
-      />
+      <ScrollView style={styles.scrollView} contentContainerStyle={styles.scrollContent}>
+        <View style={styles.header}>
+          <Text style={styles.title}>INCLOSET</Text>
+          <Text style={styles.greeting}>Hello User!</Text>
+        </View>
+
+        <OutfitSection
+          title="SAVED OUTFITS"
+          outfits={savedOutfits}
+          onOutfitPress={handleOutfitPress}
+          onAddPress={() => handleAddOutfit('saved')}
+          onDelete={handleDeleteOutfit}
+          onFavorite={handleToggleFavorite}
+          onSectionPress={handleSavedOutfitsPress}
+          backgroundColor={colors.container1}
+          itemContainerColor1={colors.textcontainer1}
+        />
+
+        <OutfitSection
+          title="FAVOURITE OUTFITS"
+          outfits={favoriteOutfits}
+          onOutfitPress={handleOutfitPress}
+          onAddPress={() => handleAddOutfit('favourite')}
+          onDelete={handleDeleteOutfit}
+          onFavorite={handleToggleFavorite}
+          onSectionPress={handleFavoriteOutfitsPress}
+          backgroundColor={colors.container2}
+          itemContainerColor2={colors.textcontainer2}
+        />
+
+        <AllClothesSection
+          clothes={clothes}
+          onItemPress={handleClothingPress}
+          onSeeAllPress={handleSeeAll}
+          onAddPress={handleAddClothes}
+        />
+      </ScrollView>
     </SafeAreaView>
   );
 };
 
 const styles = StyleSheet.create({
+  loadingContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
   container: {
     flex: 1,
     backgroundColor: colors.background,
   },
-  contentContainer: {
+  scrollView: {
     flex: 1,
   },
   header: {
@@ -170,13 +186,7 @@ const styles = StyleSheet.create({
     color: colors.textSecondary,
   },
   scrollContent: {
-    flexGrow: 1,
     paddingBottom: spacing.lg,
-  },
-  loadingContainer: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
   },
 });
 

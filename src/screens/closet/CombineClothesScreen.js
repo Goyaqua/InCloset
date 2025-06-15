@@ -78,7 +78,6 @@ const CombineClothesScreen = ({ navigation }) => {
         .order('created_at', { ascending: false });
 
       if (error) throw error;
-      
       // Ensure each item has the correct structure and proper string values
       const formattedData = data.map(item => ({
         id: item.id,
@@ -88,7 +87,6 @@ const CombineClothesScreen = ({ navigation }) => {
         styles: Array.isArray(item.styles) ? item.styles : [],
         occasions: Array.isArray(item.occasions) ? item.occasions : []
       }));
-      
       setAllClothes(formattedData);
     } catch (error) {
       console.error('Error fetching clothes:', error);
@@ -141,14 +139,12 @@ const CombineClothesScreen = ({ navigation }) => {
   const handleBoardPress = (event) => {
     // Get the coordinates of the touch
     const { locationX, locationY } = event.nativeEvent;
-    
     // Check if the touch is on any clothing item
     const isOnClothingItem = selectedItems.some(item => {
       const itemX = item.position.x;
       const itemY = item.position.y;
       const itemWidth = 100; // Approximate width of clothing item
       const itemHeight = 100; // Approximate height of clothing item
-      
       // Create a hit area that's exactly the size of the item
       const hitArea = {
         left: itemX,
@@ -156,7 +152,6 @@ const CombineClothesScreen = ({ navigation }) => {
         top: itemY,
         bottom: itemY + itemHeight
       };
-      
       return (
         locationX >= hitArea.left &&
         locationX <= hitArea.right &&
@@ -203,7 +198,6 @@ const CombineClothesScreen = ({ navigation }) => {
 
       // Capture the board image
       const boardImageUri = await captureBoardImage();
-      
       // Convert image to base64
       const base64 = await FileSystem.readAsStringAsync(boardImageUri, {
         encoding: FileSystem.EncodingType.Base64
@@ -315,7 +309,6 @@ const CombineClothesScreen = ({ navigation }) => {
                 styles: item.styles,
                 occasions: item.occasions
               };
-              
               return (
                 <View key={item.id} style={styles.gridItem}>
                   <ClothingItem
@@ -338,7 +331,6 @@ const CombineClothesScreen = ({ navigation }) => {
     <SafeAreaView style={styles.container}>
       <View style={styles.header}>
         <Text style={styles.title}>CREATE YOUR OUTFIT</Text>
-        
         <View style={styles.outfitNameContainer}>
           <Text style={styles.outfitNameLabel}>OUTFIT NAME</Text>
           <TouchableOpacity onPress={() => setIsEditingName(true)}>
@@ -392,11 +384,11 @@ const CombineClothesScreen = ({ navigation }) => {
       </View>
 
       <View style={styles.buttonContainer}>
-        <TouchableOpacity style={styles.cancelButton} onPress={resetOutfit}>
+        <TouchableOpacity style={styles.cancelButton} onPress={() => navigation.goBack()}>
           <Text style={styles.cancelButtonText}>CANCEL</Text>
         </TouchableOpacity>
-        <TouchableOpacity 
-          style={[styles.saveButton, isSaving && styles.saveButtonDisabled]} 
+        <TouchableOpacity
+          style={[styles.saveButton, isSaving && styles.saveButtonDisabled]}
           onPress={saveOutfit}
           disabled={isSaving}
         >
@@ -483,7 +475,8 @@ const styles = StyleSheet.create({
   },
   buttonContainer: {
     flexDirection: 'row',
-    justifyContent: 'space-between',
+    justifyContent: 'center',
+    alignItems: 'center',
     paddingHorizontal: spacing.lg,
     paddingVertical: spacing.lg,
     gap: spacing.md,
@@ -491,19 +484,20 @@ const styles = StyleSheet.create({
     borderTopColor: '#E9ECEF',
   },
   cancelButton: {
-    backgroundColor: '#2E7D32',
-    paddingVertical: spacing.sm,
-    paddingHorizontal: spacing.lg,
-    borderRadius: 10,
-    marginTop: spacing.md,
+    width: '48%',
+    paddingVertical: 16,
+    backgroundColor: '#EC4899',
+    borderRadius: 12,
+    alignItems: 'center',
   },
   cancelButtonText: {
-    color: colors.background,
+    fontSize: 16,
     fontWeight: '600',
-    fontSize: 14,
+    color: '#FFFFFF',
+    letterSpacing: 0.5,
   },
   saveButton: {
-    flex: 1,
+    width: '48%',
     paddingVertical: 16,
     backgroundColor: '#6366F1',
     borderRadius: 12,

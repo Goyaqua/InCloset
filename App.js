@@ -1,6 +1,7 @@
 import React, { useCallback, useEffect, useState } from 'react';
 import { View } from 'react-native';
 import * as SplashScreen from 'expo-splash-screen';
+import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { enableScreens } from 'react-native-screens';
 import { AppNavigator } from './src/navigation/AppNavigator';
 import { onAuthStateChange, getSession } from './src/services/supabase/auth';
@@ -72,8 +73,10 @@ export default function App() {
   }
 
   return (
-    <View style={{ flex: 1 }} onLayout={onLayoutRootView}>
-      <AppNavigator session={session} />
-    </View>
+    <GestureHandlerRootView style={{ flex: 1 }}>
+      <View style={{ flex: 1 }} onLayout={onLayoutRootView}>
+        <AppNavigator session={session} />
+      </View>
+    </GestureHandlerRootView>
   );
 }

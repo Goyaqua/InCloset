@@ -25,14 +25,15 @@ const AddOutfitButton = ({ onPress, containerColor = colors.primary }) => {
 const styles = StyleSheet.create({
   container: {
     width: ITEM_WIDTH,
-    height: ITEM_WIDTH * 1.2,
+    height: 186,
     marginRight: spacing.md,
     borderRadius: layout.borderRadius,
     backgroundColor: 'transparent',
-    borderWidth: 2,
+    borderWidth: 1.5,
     borderStyle: 'dashed',
     justifyContent: 'center',
     alignItems: 'center',
+    padding: spacing.sm,
   },
   content: {
     alignItems: 'center',

@@ -18,7 +18,6 @@ const OutfitItem = ({
   title, 
   image,
   onPress, 
-  onDelete, 
   onFavorite, 
   isFavorite, 
   containerColor 
@@ -79,13 +78,6 @@ const OutfitItem = ({
         <Text style={styles.title} numberOfLines={1}>
           {title}
         </Text>
-        <TouchableOpacity style={styles.deleteButton} onPress={onDelete}>
-          <MaterialIcons
-            name="delete-outline"
-            size={20}
-            color={colors.danger}
-          />
-        </TouchableOpacity>
       </View>
     </View>
   );
@@ -94,17 +86,17 @@ const OutfitItem = ({
 const styles = StyleSheet.create({
   container: {
     width: ITEM_WIDTH,
-    flex: 1,
     marginRight: spacing.md,
+
+    padding: spacing.sm,
   },
   content: {
-    flex: 1,
     alignItems: 'center',
     justifyContent: 'center',
   },
   imagesContainer: {
     width: '100%',
-    aspectRatio: 0.7,
+    height: 150,
     alignItems: 'center',
     justifyContent: 'center',
     position: 'relative',
@@ -118,19 +110,15 @@ const styles = StyleSheet.create({
   footer: {
     flexDirection: 'row',
     alignItems: 'center',
-    justifyContent: 'space-between',
+    justifyContent: 'center',
     paddingTop: spacing.sm,
     paddingHorizontal: spacing.xs,
   },
   title: {
     ...typography.caption,
     color: colors.text,
-    flex: 1,
-    marginRight: spacing.xs,
+    textAlign: 'center',
     fontSize: 14,
-  },
-  deleteButton: {
-    padding: spacing.xs,
   },
   placeholderContainer: {
     width: '100%',

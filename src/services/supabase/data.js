@@ -3,15 +3,23 @@ import { supabase } from './auth';
 // Clothes functions
 export const getClothes = async () => {
   try {
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) {
+      console.log('No authenticated user found');
+      return { data: [], error: null };
+    }
+
     const { data: clothes, error } = await supabase
       .from('clothes')
       .select('*')
+      .eq('user_id', user.id)
       .order('created_at', { ascending: false });
     
     if (error) throw error;
-    return { data: clothes, error: null };
+    return { data: clothes || [], error: null };
   } catch (error) {
-    return { data: null, error };
+    console.error('Error in getClothes:', error);
+    return { data: [], error };
   }
 };
 
@@ -219,16 +227,24 @@ export const deleteOutfit = async (id) => {
 // Favorites functions
 export const getFavorites = async () => {
   try {
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) {
+      console.log('No authenticated user found');
+      return { data: [], error: null };
+    }
+
     const { data: favorites, error } = await supabase
       .from('favourites')
       .select(`
-        outfits(
+        outfit_id,
+        outfits!inner(
           *,
           outfit_items(
             clothes(*)
           )
         )
       `)
+      .eq('outfits.user_id', user.id)
       .order('created_at', { ascending: false });
     
     if (error) throw error;
@@ -237,15 +253,17 @@ export const getFavorites = async () => {
     const transformedFavorites = favorites.map(favorite => ({
       id: favorite.outfits.id,
       title: favorite.outfits.name,
-      items: favorite.outfits.outfit_items.map(item => ({
-        id: item.clothes.id,
-        image: item.clothes.image_url
-      }))
+      image: favorite.outfits.image_path,
+      items: favorite.outfits.outfit_items?.map(item => ({
+        id: item.clothes?.id,
+        image: item.clothes?.image_path
+      })) || []
     }));
 
     return { data: transformedFavorites, error: null };
   } catch (error) {
-    return { data: null, error };
+    console.error('Error in getFavorites:', error);
+    return { data: [], error };
   }
 };
 
