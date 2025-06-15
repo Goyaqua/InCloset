@@ -129,6 +129,7 @@ export const getOutfits = async () => {
       return { data: [], error: null };
     }
 
+    // First get all outfits
     const { data: outfits, error } = await supabase
       .from('outfits')
       .select(`
@@ -142,18 +143,24 @@ export const getOutfits = async () => {
     
     if (error) throw error;
 
-    // Log the raw outfit data for debugging
-    console.log('Raw outfit data:', outfits);
+    // Then get all favorites for the current user
+    const { data: favorites, error: favError } = await supabase
+      .from('favourites')
+      .select('outfit_id')
+      .eq('user_id', user.id);
+
+    if (favError) throw favError;
+
+    // Create a set of favorited outfit IDs for quick lookup
+    const favoritedOutfitIds = new Set(favorites?.map(fav => fav.outfit_id) || []);
 
     // Transform the data to match the expected format
     const transformedOutfits = outfits?.map(outfit => {
-      // Log each outfit's image path for debugging
-      console.log('Outfit image path:', outfit.image_path);
-      
       return {
         id: outfit.id,
         title: outfit.name,
-        image: outfit.image_path, // This should be the full path from storage
+        image: outfit.image_path,
+        isFavorite: favoritedOutfitIds.has(outfit.id),
         items: outfit.outfit_items?.map(item => ({
           id: item.clothes?.id,
           image: item.clothes?.image_path
@@ -211,15 +218,31 @@ export const deleteOutfit = async (outfitId) => {
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) throw new Error('User not authenticated');
 
-    // First delete ALL favorites referencing this outfit (not just for current user)
-    const { error: favoritesError } = await supabase
-      .from('favourites')
-      .delete()
-      .eq('outfit_id', outfitId);
+    // First check if the outfit exists and is favorited
+    const { data: existingOutfit, error: checkError } = await supabase
+      .from('outfits')
+      .select(`
+        id,
+        image_path,
+        favourites!left(id)
+      `)
+      .eq('id', outfitId)
+      .single();
 
-    if (favoritesError) throw favoritesError;
+    if (checkError) throw checkError;
+    if (!existingOutfit) throw new Error('Outfit not found');
 
-    // Then delete the outfit items
+    // First remove from favorites if it exists
+    if (existingOutfit.favourites) {
+      const { error: favoritesError } = await supabase
+        .from('favourites')
+        .delete()
+        .eq('outfit_id', outfitId);
+
+      if (favoritesError) throw favoritesError;
+    }
+
+    // Delete the outfit items
     const { error: itemsError } = await supabase
       .from('outfit_items')
       .delete()
@@ -227,7 +250,7 @@ export const deleteOutfit = async (outfitId) => {
 
     if (itemsError) throw itemsError;
 
-    // Finally delete the outfit itself
+    // Delete the outfit itself
     const { error: outfitError } = await supabase
       .from('outfits')
       .delete()
@@ -236,7 +259,33 @@ export const deleteOutfit = async (outfitId) => {
 
     if (outfitError) throw outfitError;
 
-    return { data: null, error: null };
+    // Delete the outfit image from storage if it exists
+    if (existingOutfit.image_path) {
+      const { error: storageError } = await supabase.storage
+        .from('outfits')
+        .remove([existingOutfit.image_path]);
+      
+      if (storageError) {
+        console.warn('Failed to delete outfit image from storage:', storageError);
+        // Don't throw error for storage cleanup failure
+      }
+    }
+
+    // Immediately refresh both outfits and favorites lists
+    const [outfitsResult, favoritesResult] = await Promise.all([
+      getOutfits(),
+      getFavorites()
+    ]);
+
+    // Return the refreshed data immediately
+    return {
+      data: {
+        success: true,
+        outfits: outfitsResult.data || [],
+        favorites: favoritesResult.data || []
+      },
+      error: null
+    };
   } catch (error) {
     console.error('Error deleting outfit:', error);
     return { data: null, error };
@@ -275,18 +324,23 @@ export const getFavorites = async () => {
     
     if (error) throw error;
 
+    // Ensure favorites is an array
+    const favoritesArray = favorites || [];
+
     // Transform the data to match the expected format
-    const transformedFavorites = favorites
-      .filter(favorite => favorite.outfits) // Filter out any null outfits
+    const transformedFavorites = favoritesArray
+      .filter(favorite => favorite && favorite.outfits) // Filter out null/undefined favorites and outfits
       .map(favorite => ({
         id: favorite.outfits.id,
         title: favorite.outfits.name,
         image: favorite.outfits.image_path,
         isFavorite: true,
-        items: favorite.outfits.outfit_items?.map(item => ({
-          id: item.clothes?.id,
-          image: item.clothes?.image_path
-        })) || []
+        items: (favorite.outfits.outfit_items || [])
+          .filter(item => item && item.clothes) // Filter out null/undefined items and clothes
+          .map(item => ({
+            id: item.clothes.id,
+            image: item.clothes.image_path
+          }))
       }));
 
     return { data: transformedFavorites, error: null };
@@ -339,7 +393,21 @@ export const toggleFavorite = async (outfitId) => {
         .eq('id', existing.id);
       
       if (deleteError) throw deleteError;
-      return { data: { isFavorite: false }, error: null };
+
+      // Refresh both lists after removing from favorites
+      const [outfitsResult, favoritesResult] = await Promise.all([
+        getOutfits(),
+        getFavorites()
+      ]);
+
+      return { 
+        data: { 
+          isFavorite: false,
+          outfits: outfitsResult.data || [],
+          favorites: favoritesResult.data || []
+        }, 
+        error: null 
+      };
     } else {
       // Add to favorites
       const { data: newFavorite, error: insertError } = await supabase
@@ -353,7 +421,21 @@ export const toggleFavorite = async (outfitId) => {
         .single();
       
       if (insertError) throw insertError;
-      return { data: { isFavorite: true }, error: null };
+
+      // Refresh both lists after adding to favorites
+      const [outfitsResult, favoritesResult] = await Promise.all([
+        getOutfits(),
+        getFavorites()
+      ]);
+
+      return { 
+        data: { 
+          isFavorite: true,
+          outfits: outfitsResult.data || [],
+          favorites: favoritesResult.data || []
+        }, 
+        error: null 
+      };
     }
   } catch (error) {
     console.error('Error in toggleFavorite:', error);
@@ -393,5 +475,63 @@ export const ensureProfile = async (user) => {
   } catch (error) {
     console.error('Error ensuring profile:', error);
     return { data: null, error };
+  }
+};
+
+// Add a new function to refresh favorites
+export const refreshFavorites = async () => {
+  try {
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) {
+      console.log('No authenticated user found');
+      return { data: [], error: null };
+    }
+
+    const { data: favorites, error } = await supabase
+      .from('favourites')
+      .select(`
+        *,
+        outfits!left(
+          id,
+          name,
+          image_path,
+          user_id,
+          created_at,
+          outfit_items(
+            clothes(
+              id,
+              image_path
+            )
+          )
+        )
+      `)
+      .eq('user_id', user.id)
+      .order('created_at', { ascending: false });
+    
+    if (error) throw error;
+
+    // Ensure favorites is an array
+    const favoritesArray = favorites || [];
+
+    // Transform the data to match the expected format
+    const transformedFavorites = favoritesArray
+      .filter(favorite => favorite && favorite.outfits) // Filter out null/undefined favorites and outfits
+      .map(favorite => ({
+        id: favorite.outfits.id,
+        title: favorite.outfits.name,
+        image: favorite.outfits.image_path,
+        isFavorite: true,
+        items: (favorite.outfits.outfit_items || [])
+          .filter(item => item && item.clothes) // Filter out null/undefined items and clothes
+          .map(item => ({
+            id: item.clothes.id,
+            image: item.clothes.image_path
+          }))
+      }));
+
+    return { data: transformedFavorites, error: null };
+  } catch (error) {
+    console.error('Error refreshing favorites:', error);
+    return { data: [], error };
   }
 };

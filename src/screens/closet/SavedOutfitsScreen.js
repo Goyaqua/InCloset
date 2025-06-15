@@ -7,10 +7,11 @@ import {
   ScrollView,
   TouchableOpacity,
   ActivityIndicator,
-  Dimensions
+  Dimensions,
+  Alert
 } from 'react-native';
 import { colors, spacing } from '../../styles/theme';
-import { getOutfits, getFavorites } from '../../services/supabase/data';
+import { getOutfits, getFavorites, deleteOutfit } from '../../services/supabase/data';
 import MaterialCommunityIcons from 'react-native-vector-icons/MaterialCommunityIcons';
 import OutfitItem from '../../components/specific/home/OutfitItem';
 
@@ -54,6 +55,7 @@ const SavedOutfitsScreen = ({ route, navigation }) => {
       setOutfits(displayOutfits);
     } catch (error) {
       console.error('Error loading outfits:', error);
+      Alert.alert('Error', 'Failed to load outfits. Please try again.');
     } finally {
       setLoading(false);
     }
@@ -65,6 +67,51 @@ const SavedOutfitsScreen = ({ route, navigation }) => {
 
   const handleAddPress = () => {
     navigation.navigate('Combine');
+  };
+
+  const handleDeleteOutfit = async (outfitId) => {
+    Alert.alert(
+      'Delete Outfit',
+      'Are you sure you want to delete this outfit?',
+      [
+        {
+          text: 'Cancel',
+          style: 'cancel'
+        },
+        {
+          text: 'Delete',
+          style: 'destructive',
+          onPress: async () => {
+            try {
+              const { data, error } = await deleteOutfit(outfitId);
+              if (error) throw error;
+              
+              // First remove the outfit from the current list
+              setOutfits(prevOutfits => 
+                prevOutfits.filter(outfit => outfit.id !== outfitId)
+              );
+
+              // Then update with the fresh data from the server
+              if (data) {
+                if (type === 'saved') {
+                  setOutfits(data.outfits);
+                } else if (type === 'favorite') {
+                  setOutfits(data.favorites);
+                }
+              }
+
+              // Navigate back if we're in the outfit details screen
+              if (navigation.canGoBack()) {
+                navigation.goBack();
+              }
+            } catch (error) {
+              console.error('Error deleting outfit:', error);
+              Alert.alert('Error', 'Failed to delete outfit. Please try again.');
+            }
+          }
+        }
+      ]
+    );
   };
 
   if (loading) {
@@ -99,6 +146,7 @@ const SavedOutfitsScreen = ({ route, navigation }) => {
                 title={outfit.title}
                 image={outfit.image}
                 onPress={() => handleOutfitPress(outfit.id)}
+                onDelete={() => handleDeleteOutfit(outfit.id)}
                 isFavorite={outfit.isFavorite}
               />
             </View>
@@ -145,12 +193,12 @@ const styles = StyleSheet.create({
   grid: {
     flexDirection: 'row',
     flexWrap: 'wrap',
-    padding: spacing.md,
     justifyContent: 'space-between',
+    padding: spacing.md,
   },
   gridItem: {
     width: ITEM_WIDTH,
-    marginBottom: spacing.lg,
+    marginBottom: spacing.md,
   },
 });
 

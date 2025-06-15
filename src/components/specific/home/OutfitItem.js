@@ -23,6 +23,7 @@ const OutfitItem = ({
   image,
   onPress, 
   onFavorite, 
+  onDelete,
   isFavorite, 
   containerColor,
   textColor
@@ -87,13 +88,26 @@ const OutfitItem = ({
         </View>
       </TouchableOpacity>
       
-      <TouchableOpacity style={styles.favoriteButton} onPress={onFavorite}>
-        <Ionicons
-          name={isFavorite ? "heart" : "heart-outline"}
-          size={24}
-          color={isFavorite ? colors.danger : colors.textSecondary}
-        />
-      </TouchableOpacity>
+      <View style={styles.actionButtons}>
+        {onFavorite && (
+          <TouchableOpacity style={styles.actionButton} onPress={onFavorite}>
+            <Ionicons
+              name={isFavorite ? "heart" : "heart-outline"}
+              size={24}
+              color={isFavorite ? colors.danger : colors.textSecondary}
+            />
+          </TouchableOpacity>
+        )}
+        {onDelete && (
+          <TouchableOpacity style={styles.actionButton} onPress={onDelete}>
+            <Ionicons
+              name="trash-outline"
+              size={24}
+              color={colors.danger}
+            />
+          </TouchableOpacity>
+        )}
+      </View>
 
       <View style={styles.footer}>
         <Text style={[styles.title, { color: textColor }]} numberOfLines={1}>
@@ -128,12 +142,16 @@ const styles = StyleSheet.create({
     height: '100%',
     resizeMode: 'cover',
   },
-  favoriteButton: {
+  actionButtons: {
     position: 'absolute',
     top: spacing.sm,
     right: spacing.sm,
     zIndex: 1,
+    flexDirection: 'row',
+  },
+  actionButton: {
     padding: spacing.xs,
+    marginLeft: spacing.xs,
   },
   footer: {
     flexDirection: 'row',

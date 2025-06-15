@@ -86,12 +86,26 @@ const InclosetHomepage = ({ navigation, route }) => {
 
   const handleDeleteOutfit = async (outfitId) => {
     try {
-      const { error } = await deleteOutfit(outfitId);
+      const { data, error } = await deleteOutfit(outfitId);
       if (error) throw error;
-      await loadData(); // Reload data after deletion
+      
+      // Update both saved outfits and favorite outfits with the new data
+      if (data) {
+        // First remove the outfit from both lists immediately for instant feedback
+        setSavedOutfits(prevOutfits => 
+          prevOutfits.filter(outfit => outfit.id !== outfitId)
+        );
+        setFavoriteOutfits(prevFavorites => 
+          prevFavorites.filter(outfit => outfit.id !== outfitId)
+        );
+
+        // Then update with the fresh data from the server
+        setSavedOutfits(data.outfits);
+        setFavoriteOutfits(data.favorites);
+      }
     } catch (error) {
       console.error('Error deleting outfit:', error);
-      // Show error message to user
+      Alert.alert('Error', 'Failed to delete outfit. Please try again.');
     }
   };
 
@@ -100,23 +114,10 @@ const InclosetHomepage = ({ navigation, route }) => {
       const { data, error } = await toggleFavorite(outfitId);
       if (error) throw error;
       
-      // Find the outfit in either saved or favorite outfits
-      const outfit = savedOutfits.find(o => o.id === outfitId) || favoriteOutfits.find(o => o.id === outfitId);
-      if (!outfit) return;
-      
-      // Update local state based on the response
-      if (data.isFavorite) {
-        // Add to favorites
-        setFavoriteOutfits(prev => [...prev, { ...outfit, isFavorite: true }]);
-        setSavedOutfits(prev => prev.map(o => 
-          o.id === outfitId ? { ...o, isFavorite: true } : o
-        ));
-      } else {
-        // Remove from favorites
-        setFavoriteOutfits(prev => prev.filter(o => o.id !== outfitId));
-        setSavedOutfits(prev => prev.map(o => 
-          o.id === outfitId ? { ...o, isFavorite: false } : o
-        ));
+      // Update both saved outfits and favorite outfits with the new data
+      if (data) {
+        setSavedOutfits(data.outfits);
+        setFavoriteOutfits(data.favorites);
       }
       
       // Show feedback
@@ -125,9 +126,6 @@ const InclosetHomepage = ({ navigation, route }) => {
         data.isFavorite ? 'The outfit has been added to your favorites.' : 'The outfit has been removed from your favorites.',
         [{ text: 'OK' }]
       );
-      
-      // Reload data in the background
-      loadData(true);
     } catch (error) {
       console.error('Error toggling favorite:', error);
       Alert.alert('Error', 'Failed to update favorite status. Please try again.');
