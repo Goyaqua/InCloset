@@ -262,7 +262,7 @@ export const deleteOutfit = async (outfitId) => {
     // Delete the outfit image from storage if it exists
     if (existingOutfit.image_path) {
       const { error: storageError } = await supabase.storage
-        .from('outfits')
+        .from('userclothes')
         .remove([existingOutfit.image_path]);
       
       if (storageError) {
