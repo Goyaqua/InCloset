@@ -12,6 +12,7 @@ import {
   TextInput,
   Dimensions,
   TouchableWithoutFeedback,
+  ActivityIndicator,
 } from 'react-native';
 import { supabase } from '../../services/supabase/auth';
 import { addOutfit, updateOutfit } from '../../services/supabase/data';
@@ -35,9 +36,21 @@ const clothingCategories = [
 ];
 
 const CombineClothesScreen = ({ route, navigation }) => {
-  const { outfitId = null, outfit = null } = route?.params || {};
+  const { outfitId = null, outfit = null, suggestedItems = null, outfitName: suggestedOutfitName = null } = route?.params || {};
+  
+  // Debug route parameters
+  console.log('=== COMBINE CLOTHES SCREEN PARAMS ===');
+  console.log('route.params:', route?.params);
+  console.log('outfitId:', outfitId);
+  console.log('outfit:', outfit);
+  console.log('suggestedItems:', suggestedItems);
+  console.log('suggestedOutfitName:', suggestedOutfitName);
+  console.log('===================================');
+  
   const boardRef = useRef(null);
-  const [outfitName, setOutfitName] = useState(outfit?.title || 'My New Outfit');
+  const [outfitName, setOutfitName] = useState(
+    suggestedOutfitName || outfit?.title || 'My New Outfit'
+  );
   const [isEditingName, setIsEditingName] = useState(false);
   const [selectedItems, setSelectedItems] = useState([]);
   const [allClothes, setAllClothes] = useState([]);
@@ -46,7 +59,9 @@ const CombineClothesScreen = ({ route, navigation }) => {
   const [isSaving, setIsSaving] = useState(false);
   const [selectedItemId, setSelectedItemId] = useState(null);
   const [lastSelectedId, setLastSelectedId] = useState(null);
+  const [isGeneratingName, setIsGeneratingName] = useState(false);
   const preloadDoneRef = useRef(false);
+  const suggestedItemsLoadedRef = useRef(false);
 
   useEffect(() => {
     fetchClothes();
@@ -58,6 +73,49 @@ const CombineClothesScreen = ({ route, navigation }) => {
       setOutfitName(outfit.title);
     }
   }, [outfit, outfitId]);
+
+  // Load suggested items from AI assistant
+  useEffect(() => {
+    console.log('=== SUGGESTED ITEMS USEEFFECT ===');
+    console.log('suggestedItems:', suggestedItems);
+    console.log('suggestedItemsLoadedRef.current:', suggestedItemsLoadedRef.current);
+    console.log('suggestedItems exists:', !!suggestedItems);
+    console.log('suggestedItems length:', suggestedItems?.length);
+    
+    if (suggestedItems && suggestedItems.length > 0) {
+      console.log('Loading AI suggested items:', suggestedItems);
+      
+      const formattedSuggestedItems = suggestedItems.map((item, index) => ({
+        id: item.id,
+        name: item.name,
+        image_path: item.image_path,
+        type: item.type,
+        boardId: Date.now().toString() + Math.random().toString().slice(2),
+        // Position items in a grid-like pattern
+        position: { 
+          x: 50 + (index % 3) * 120, 
+          y: 50 + Math.floor(index / 3) * 120 
+        },
+      }));
+
+      console.log('formattedSuggestedItems:', formattedSuggestedItems);
+      setSelectedItems(formattedSuggestedItems);
+      
+      // Set active filter to show the first item's type
+      if (formattedSuggestedItems[0]?.type) {
+        setActiveFilters([formattedSuggestedItems[0].type]);
+      }
+      
+      suggestedItemsLoadedRef.current = true;
+      console.log('Loaded AI suggested items:', formattedSuggestedItems.length);
+    }
+    console.log('================================');
+    
+    // Cleanup function to reset the ref when component unmounts
+    return () => {
+      suggestedItemsLoadedRef.current = false;
+    };
+  }, [suggestedItems]);
 
   // Add focus listener to refresh data when screen comes into focus
   useEffect(() => {
@@ -72,6 +130,12 @@ const CombineClothesScreen = ({ route, navigation }) => {
 
   // When all clothes are fetched and we have an outfit to edit, preload items
   useEffect(() => {
+    // Don't load outfit items if we have suggested items (AI suggestions take priority)
+    if (suggestedItems && suggestedItems.length > 0) {
+      console.log('Skipping outfit loading because suggestedItems are present');
+      return;
+    }
+    
     if (!outfit || preloadDoneRef.current || allClothes.length === 0) return;
 
     console.log('Loading outfit items for editing:', outfit.items);
@@ -318,6 +382,61 @@ const CombineClothesScreen = ({ route, navigation }) => {
     setSelectedItems([]);
   };
 
+  const generateAIOutfitName = async () => {
+    if (selectedItems.length === 0) {
+      Alert.alert('No Items', 'Please add some clothing items first to generate a name.');
+      return;
+    }
+
+    setIsGeneratingName(true);
+    try {
+      // Create a description of the outfit items
+      const itemDescriptions = selectedItems.map(item => 
+        `${item.name} (${item.type})`
+      ).join(', ');
+
+      const systemPrompt = `You are a creative fashion stylist. Generate a catchy, creative outfit name based on the clothing items provided. The name should be:
+- Fun and memorable
+- 2-4 words maximum
+- Reflect the style/vibe of the items
+- Suitable for a personal wardrobe app
+
+Respond with ONLY the outfit name, no additional text or quotes.`;
+
+      const response = await fetch('https://api.openai.com/v1/chat/completions', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${process.env.EXPO_PUBLIC_OPENAI_API_KEY}`,
+        },
+        body: JSON.stringify({
+          model: 'gpt-4o-mini',
+          messages: [
+            { role: 'system', content: systemPrompt },
+            { role: 'user', content: `Create an outfit name for these items: ${itemDescriptions}` }
+          ],
+          max_tokens: 20,
+          temperature: 0.8,
+        }),
+      });
+
+      const data = await response.json();
+      const generatedName = data.choices?.[0]?.message?.content?.trim();
+      
+      if (generatedName) {
+        setOutfitName(generatedName);
+        Alert.alert('✨ Name Generated!', `Your outfit is now called "${generatedName}"`);
+      } else {
+        throw new Error('No name generated');
+      }
+    } catch (error) {
+      console.error('Error generating AI outfit name:', error);
+      Alert.alert('Error', 'Failed to generate outfit name. Please try again.');
+    } finally {
+      setIsGeneratingName(false);
+    }
+  };
+
   const renderFilterSheet = () => (
     <BottomSheet
       visible={showFilterSheet}
@@ -394,9 +513,29 @@ const CombineClothesScreen = ({ route, navigation }) => {
       <View style={styles.header}>
         <View style={styles.outfitNameContainer}>
           <Text style={styles.outfitNameLabel}>OUTFIT NAME</Text>
-          <TouchableOpacity onPress={() => setIsEditingName(true)}>
-            <MaterialCommunityIcons name="pencil" size={16} color={colors.primary} />
-          </TouchableOpacity>
+          <View style={styles.nameActions}>
+            <TouchableOpacity 
+              onPress={generateAIOutfitName}
+              style={[
+                styles.aiNameButton,
+                (isGeneratingName || selectedItems.length === 0) && styles.aiNameButtonDisabled
+              ]}
+              disabled={isGeneratingName || selectedItems.length === 0}
+            >
+              {isGeneratingName ? (
+                <ActivityIndicator size="small" color="#6366F1" />
+              ) : (
+                <MaterialCommunityIcons 
+                  name="auto-fix" 
+                  size={16} 
+                  color={selectedItems.length === 0 ? '#9CA3AF' : '#6366F1'} 
+                />
+              )}
+            </TouchableOpacity>
+            <TouchableOpacity onPress={() => setIsEditingName(true)}>
+              <MaterialCommunityIcons name="pencil" size={16} color={colors.primary} />
+            </TouchableOpacity>
+          </View>
         </View>
 
         {isEditingName ? (
@@ -411,7 +550,9 @@ const CombineClothesScreen = ({ route, navigation }) => {
           />
         ) : (
           <TouchableOpacity onPress={() => setIsEditingName(true)}>
-            <Text style={styles.outfitNameText}>{outfitName}</Text>
+            <Text style={styles.outfitNameText}>
+              {isGeneratingName ? 'Generating...' : outfitName}
+            </Text>
           </TouchableOpacity>
         )}
       </View>
@@ -639,6 +780,22 @@ const styles = StyleSheet.create({
     marginBottom: spacing.lg,
     borderWidth: 0,
     borderColor: 'transparent',
+  },
+  nameActions: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  aiNameButton: {
+    padding: spacing.xs,
+    borderRadius: 8,
+    backgroundColor: '#F3F4F6',
+    borderWidth: 1,
+    borderColor: '#E5E7EB',
+    marginRight: spacing.sm,
+  },
+  aiNameButtonDisabled: {
+    backgroundColor: '#D1D5DB',
+    opacity: 0.6,
   },
 });
 

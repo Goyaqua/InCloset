@@ -59,6 +59,18 @@ const HomeStack = () => (
       }}
     />
     <Stack.Screen
+      name="CombineScreen"
+      component={CombineClothesScreen}
+      options={{
+        headerShown: true,
+        title: 'Create Outfit',
+        headerTitleStyle: {
+          ...typography.subtitle,
+          fontWeight: '600',
+        },
+      }}
+    />
+    <Stack.Screen
       name="OutfitScreen"
       component={OutfitScreen}
       options={{

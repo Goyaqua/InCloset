@@ -13,7 +13,7 @@ import {
   ScrollView
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { useFocusEffect } from '@react-navigation/native';
+import { useFocusEffect, useNavigation } from '@react-navigation/native';
 import { getClothes } from '../../services/supabase/data';
 import ClothingItem from '../../components/specific/home/ClothingItem';
 
@@ -25,6 +25,7 @@ const ChatbotScreen = () => {
   const [closetData, setClosetData] = useState([]); // simplified closet objects
   const [outfitIds, setOutfitIds] = useState([]); // currently suggested outfit item ids
   const flatListRef = useRef(null);
+  const navigation = useNavigation();
 
   // Fetch closet data whenever screen gains focus
   useFocusEffect(
@@ -142,8 +143,36 @@ const ChatbotScreen = () => {
   const renderOutfitPreview = () => {
     if (!outfitIds.length) return null;
     const items = closetData.filter(c => outfitIds.includes(c.id));
+    
+    const handleCreateOutfit = () => {
+      // Debug logging
+      console.log('=== CREATE OUTFIT DEBUG ===');
+      console.log('outfitIds:', outfitIds);
+      console.log('closetData length:', closetData.length);
+      console.log('filtered items:', items);
+      console.log('items length:', items.length);
+      console.log('first item structure:', items[0]);
+      console.log('==========================');
+      
+      // Navigate to CombineClothesScreen with suggested items
+      navigation.navigate('CombineScreen', {
+        suggestedItems: items,
+        outfitName: 'AI Suggested Outfit'
+      });
+    };
+    
     return (
       <View style={styles.outfitContainer}>
+        <View style={styles.outfitHeader}>
+          <Text style={styles.outfitTitle}>✨ AI Suggested Outfit</Text>
+          <TouchableOpacity 
+            style={styles.createOutfitButton}
+            onPress={handleCreateOutfit}
+          >
+            <Ionicons name="add-circle" size={20} color="#6366F1" />
+            <Text style={styles.createOutfitButtonText}>Create Outfit</Text>
+          </TouchableOpacity>
+        </View>
         <FlatList
           horizontal
           data={items}
@@ -224,6 +253,35 @@ const styles = StyleSheet.create({
     paddingVertical: 8,
     borderBottomWidth: 1,
     borderColor: '#E5E7EB',
+    backgroundColor: '#F8FAFC',
+  },
+  outfitHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingHorizontal: 4,
+    paddingBottom: 8,
+  },
+  outfitTitle: {
+    fontSize: 16,
+    fontWeight: 'bold',
+    color: '#1F2937',
+  },
+  createOutfitButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#EEF2FF',
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 16,
+    borderWidth: 1,
+    borderColor: '#C7D2FE',
+  },
+  createOutfitButtonText: {
+    marginLeft: 4,
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#6366F1',
   },
   thumbnailWrapper: {
     width: 100,
