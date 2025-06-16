@@ -21,6 +21,7 @@ import CombineClothesScreen from '../screens/closet/CombineClothesScreen';
 import ClothingDetailsScreen from '../screens/closet/ClothingDetailsScreen';
 import OutfitScreen from '../screens/closet/OutfitScreen';
 import SavedOutfitsScreen from '../screens/closet/SavedOutfitsScreen';
+import ChatbotScreen from '../screens/closet/ChatbotScreen';
 
 const Tab = createBottomTabNavigator();
 const Stack = createNativeStackNavigator();
@@ -45,6 +46,18 @@ const defaultStackOptions = {
 const HomeStack = () => (
   <Stack.Navigator screenOptions={defaultStackOptions}>
     <Stack.Screen name="HomeScreen" component={InclosetHomepage} options={{ headerShown: false }} />
+    <Stack.Screen
+      name="ChatbotScreen"
+      component={ChatbotScreen}
+      options={{
+        headerShown: true,
+        title: 'AI Stylist',
+        headerTitleStyle: {
+          ...typography.subtitle,
+          fontWeight: '600',
+        },
+      }}
+    />
     <Stack.Screen
       name="OutfitScreen"
       component={OutfitScreen}

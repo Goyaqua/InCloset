@@ -428,7 +428,7 @@ const ClothingDetailsScreen = ({ route, navigation }) => {
                     style={[styles.editInput, styles.largeInput]}
                     value={editNotes}
                     onChangeText={setEditNotes}
-                    placeholder="Enter notes (for your eyes only)"
+                    placeholder="Enter Personal Notes"
                     placeholderTextColor="#9CA3AF"
                     multiline
                     numberOfLines={3}
@@ -440,6 +440,11 @@ const ClothingDetailsScreen = ({ route, navigation }) => {
               <>
                 <Text style={styles.name}>{item.name}</Text>
                 <Text style={styles.type}>Type: {item.type}</Text>
+                {item.color ? <Text style={styles.meta}>Color: <Text style={styles.metaValue}>{item.color}</Text></Text> : null}
+                {item.material ? <Text style={styles.meta}>Material: <Text style={styles.metaValue}>{item.material}</Text></Text> : null}
+                {item.brand ? <Text style={styles.meta}>Brand: <Text style={styles.metaValue}>{item.brand}</Text></Text> : null}
+                {item.season ? <Text style={styles.meta}>Season: <Text style={styles.metaValue}>{item.season}</Text></Text> : null}
+                {item.fit ? <Text style={styles.meta}>Fit: <Text style={styles.metaValue}>{item.fit}</Text></Text> : null}
                 {item.styles && item.styles.length > 0 && (
                   <View style={styles.section}>
                     <Text style={styles.sectionTitle}>Styles</Text>
@@ -452,6 +457,18 @@ const ClothingDetailsScreen = ({ route, navigation }) => {
                     {renderTags(item.occasions)}
                   </View>
                 )}
+                {item.description ? (
+                  <View style={styles.section}>
+                    <Text style={styles.sectionTitle}>Description</Text>
+                    <Text style={styles.longText} numberOfLines={5}>{item.description}</Text>
+                  </View>
+                ) : null}
+                {item.notes ? (
+                  <View style={styles.section}>
+                    <Text style={styles.sectionTitle}>Personal Notes</Text>
+                    <Text style={styles.longText} numberOfLines={5}>{item.notes}</Text>
+                  </View>
+                ) : null}
                 <Text style={styles.date}>
                   Added: {new Date(item.created_at).toLocaleDateString()}
                 </Text>
@@ -657,13 +674,14 @@ const styles = StyleSheet.create({
     marginBottom: 16,
   },
   section: {
-    marginBottom: 20,
+    marginTop: 12,
+    marginBottom: 4,
   },
   sectionTitle: {
-    fontSize: 18,
+    fontSize: 15,
     fontWeight: '600',
-    color: '#000000',
-    marginBottom: 12,
+    marginBottom: 2,
+    color: '#6366F1',
   },
   tagsContainer: {
     flexDirection: 'row',
@@ -879,6 +897,27 @@ const styles = StyleSheet.create({
   },
   scrollViewContent: {
     padding: 20,
+  },
+  meta: {
+    fontSize: 14,
+    color: '#444',
+    marginTop: 2,
+  },
+  metaValue: {
+    fontWeight: '600',
+    color: '#222',
+  },
+  longText: {
+    fontSize: 14,
+    color: '#222',
+    backgroundColor: '#F3F4F6',
+    borderRadius: 8,
+    padding: 8,
+    marginTop: 2,
+    marginBottom: 2,
+    minHeight: 40,
+    maxHeight: 120,
+    textAlignVertical: 'top',
   },
 });
 

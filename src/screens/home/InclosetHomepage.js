@@ -3,7 +3,7 @@ import { View, Text, StyleSheet, SafeAreaView, ScrollView, ActivityIndicator, Al
 import { colors, spacing, typography } from '../../styles/theme';
 import OutfitSection from '../../components/specific/home/OutfitSection';
 import AllClothesSection from '../../components/specific/home/AllClothesSection';
-import AIRequestSection from '../../components/specific/home/AIRequestSection';
+import InclosetAIAssistantSection from '../../components/specific/home/InclosetAIAssistantSection';
 import { getOutfits, getFavorites, getClothes, deleteOutfit, toggleFavorite } from '../../services/supabase/data';
 
 const InclosetHomepage = ({ navigation, route }) => {
@@ -170,7 +170,10 @@ const InclosetHomepage = ({ navigation, route }) => {
           <Text style={styles.greeting}>Hello User!</Text>
         </View>
 
-        <AIRequestSection style={{ marginHorizontal: spacing.lg, marginBottom: spacing.md }} />
+        <InclosetAIAssistantSection 
+          style={{ marginHorizontal: spacing.lg, marginBottom: spacing.md }} 
+          onPress={() => navigation.navigate('ChatbotScreen')} 
+        />
 
         <OutfitSection
           title="SAVED OUTFITS"

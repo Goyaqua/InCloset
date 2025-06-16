@@ -46,7 +46,7 @@ const ClosetScreen = () => {
       const filteredData = data.filter(item => 
         item.name.toLowerCase().includes(searchQuery.toLowerCase())
       );
-      console.log('Filtered data for display:', filteredData);
+      // console.log('Filtered data for display:', filteredData);
 
       setClothes(filteredData);
     } catch (error) {
