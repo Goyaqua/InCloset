@@ -134,20 +134,13 @@ const SavedOutfitsScreen = ({ route, navigation }) => {
         <Text style={styles.title}>
           {type === 'saved' ? 'SAVED OUTFITS' : 'FAVORITE OUTFITS'}
         </Text>
+        <TouchableOpacity onPress={handleAddPress} style={styles.addButton}>
+          <MaterialCommunityIcons name="plus" size={28} color={colors.primary} />
+        </TouchableOpacity>
       </View>
 
       <ScrollView style={styles.scrollView}>
         <View style={styles.grid}>
-          <View style={styles.gridItem}>
-            <TouchableOpacity
-              style={[styles.plusCard, { width: ITEM_WIDTH, height: 200, borderRadius: 16, justifyContent: 'center', alignItems: 'center', backgroundColor: colors.surface, borderWidth: 1, borderColor: colors.border }]}
-              onPress={handleAddPress}
-              activeOpacity={0.8}
-            >
-              <MaterialCommunityIcons name="plus" size={48} color={colors.primary} />
-              <Text style={{ color: colors.textSecondary, marginTop: 8, fontSize: 14, fontWeight: '500' }}>Add Outfit</Text>
-            </TouchableOpacity>
-          </View>
           {outfits.map((outfit) => (
             <View key={outfit.id} style={styles.gridItem}>
               <OutfitItem
@@ -178,20 +171,32 @@ const styles = StyleSheet.create({
   header: {
     flexDirection: 'row',
     alignItems: 'center',
-    justifyContent: 'space-between',
+    justifyContent: 'center',
     paddingHorizontal: spacing.md,
     paddingVertical: spacing.md,
     paddingTop: Platform.OS === 'android' ? 40 : spacing.md,
     borderBottomWidth: 1,
     borderBottomColor: colors.border,
+    position: 'relative',
   },
   backButton: {
+    position: 'absolute',
+    left: spacing.md,
+    zIndex: 2,
+    padding: spacing.xs,
+  },
+  addButton: {
+    position: 'absolute',
+    right: spacing.md,
+    zIndex: 2,
     padding: spacing.xs,
   },
   title: {
     fontSize: 18,
     fontWeight: '600',
     letterSpacing: 1,
+    flex: 1,
+    textAlign: 'center',
   },
   scrollView: {
     flex: 1,
@@ -205,12 +210,6 @@ const styles = StyleSheet.create({
   gridItem: {
     width: ITEM_WIDTH,
     marginBottom: spacing.md,
-  },
-  plusCard: {
-    justifyContent: 'center',
-    alignItems: 'center',
-    borderWidth: 1,
-    borderColor: colors.border,
   },
 });
 

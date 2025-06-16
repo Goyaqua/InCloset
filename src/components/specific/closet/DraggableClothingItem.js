@@ -29,6 +29,7 @@ const DraggableClothingItem = ({
   const [imageUrl, setImageUrl] = useState(null);
   const [size, setSize] = useState(100);
   const [isResizing, setIsResizing] = useState(false);
+  const [initialResizeSize, setInitialResizeSize] = useState(100);
 
   useEffect(() => {
     const getSignedUrl = async () => {
@@ -99,11 +100,12 @@ const DraggableClothingItem = ({
       onStartShouldSetPanResponder: () => true,
       onPanResponderGrant: () => {
         setIsResizing(true);
+        setInitialResizeSize(size);
       },
       onPanResponderMove: (_, gestureState) => {
         const newSize = Math.max(
           MIN_SIZE,
-          Math.min(MAX_SIZE, size + (gestureState.dx * RESIZE_SENSITIVITY))
+          Math.min(MAX_SIZE, initialResizeSize + (gestureState.dx * RESIZE_SENSITIVITY))
         );
         setSize(newSize);
       },
@@ -184,10 +186,10 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
+    shadowOpacity: 0,
     shadowRadius: 4,
     elevation: 3,
-    borderWidth: 1,
+    borderWidth: 0,
     borderColor: 'transparent',
   },
   selectedContainer: {
