@@ -11,11 +11,14 @@ import {
   Alert,
   TextInput,
   Modal,
+  Platform, KeyboardAvoidingView
 } from 'react-native';
 import { Picker } from '@react-native-picker/picker';
 import { supabase } from '../../services/supabase/auth';
 import { deleteClothing, updateClothing } from '../../services/supabase/data';
 import { Image as CachedImage } from 'expo-image';
+import { classifyClothingItem } from '../../services/openai/classifier';
+import { Ionicons } from '@expo/vector-icons';
 
 const clothingTypes = [
   { label: 'Pick a type', value: '' },
@@ -71,6 +74,14 @@ const ClothingDetailsScreen = ({ route, navigation }) => {
   const [editOccasions, setEditOccasions] = useState(item.occasions || []);
   const [showStylePicker, setShowStylePicker] = useState(false);
   const [showOccasionPicker, setShowOccasionPicker] = useState(false);
+  const [isClassifying, setIsClassifying] = useState(false);
+  const [editColor, setEditColor] = useState(item.color || '');
+  const [editMaterial, setEditMaterial] = useState(item.material || '');
+  const [editBrand, setEditBrand] = useState(item.brand || '');
+  const [editSeason, setEditSeason] = useState(item.season || '');
+  const [editFit, setEditFit] = useState(item.fit || '');
+  const [editNotes, setEditNotes] = useState(item.notes || '');
+  const [editDescription, setEditDescription] = useState(item.description || '');
 
   useEffect(() => {
     const getSignedUrl = async () => {
@@ -106,6 +117,13 @@ const ClothingDetailsScreen = ({ route, navigation }) => {
     setEditType(item.type);
     setEditStyles(item.styles || []);
     setEditOccasions(item.occasions || []);
+    setEditColor(item.color || '');
+    setEditMaterial(item.material || '');
+    setEditBrand(item.brand || '');
+    setEditSeason(item.season || '');
+    setEditFit(item.fit || '');
+    setEditNotes(item.notes || '');
+    setEditDescription(item.description || '');
   };
 
   const handleSaveEdit = async () => {
@@ -120,12 +138,20 @@ const ClothingDetailsScreen = ({ route, navigation }) => {
 
     setIsUpdating(true);
     try {
-      const { error } = await updateClothing(item.id, {
-        name: editName.trim(),
-        type: editType,
-        styles: editStyles,
-        occasions: editOccasions
-      });
+      const { error } = await updateClothing(
+        item.id,
+        editName.trim(),
+        editType,
+        editStyles,
+        editOccasions,
+        editColor,
+        editMaterial,
+        editBrand,
+        editSeason,
+        editFit,
+        editNotes,
+        editDescription
+      );
 
       if (error) throw error;
 
@@ -134,6 +160,13 @@ const ClothingDetailsScreen = ({ route, navigation }) => {
       item.type = editType;
       item.styles = editStyles;
       item.occasions = editOccasions;
+      item.color = editColor;
+      item.material = editMaterial;
+      item.brand = editBrand;
+      item.season = editSeason;
+      item.fit = editFit;
+      item.notes = editNotes;
+      item.description = editDescription;
       
       setIsEditing(false);
       Alert.alert('Success', 'Clothing item updated successfully!');
@@ -179,6 +212,38 @@ const ClothingDetailsScreen = ({ route, navigation }) => {
     }
   };
 
+  const handleAIClassification = async () => {
+    setIsClassifying(true);
+    try {
+      const { data: { signedUrl }, error } = await supabase.storage
+        .from('userclothes')
+        .createSignedUrl(item.image_path, 3600);
+      if (error) throw new Error('Failed to generate signed URL for AI analysis');
+      const result = await classifyClothingItem(signedUrl);
+      if (result.success) {
+        if (result.name) setEditName(result.name);
+        if (result.type) setEditType(result.type);
+        if (result.styles) setEditStyles(result.styles);
+        if (result.occasions) setEditOccasions(result.occasions);
+        if (result.color) setEditColor(result.color);
+        if (result.material) setEditMaterial(result.material);
+        if (result.brand) setEditBrand(result.brand);
+        if (result.season) setEditSeason(result.season);
+        if (result.fit) setEditFit(result.fit);
+        if (result.description) setEditDescription(result.description);
+        // Do NOT autofill notes
+        Alert.alert('Success', 'AI has analyzed your clothing item and suggested all metadata!');
+      } else {
+        throw new Error(result.error || 'Failed to analyze the image');
+      }
+    } catch (error) {
+      console.error('AI classification error:', error);
+      Alert.alert('Error', 'Failed to analyze the image. Please select fields manually.');
+    } finally {
+      setIsClassifying(false);
+    }
+  };
+
   const renderTags = (tags) => {
     if (!tags || tags.length === 0) return null;
     
@@ -195,100 +260,206 @@ const ClothingDetailsScreen = ({ route, navigation }) => {
 
   return (
     <SafeAreaView style={styles.container}>
-      <ScrollView>
-        <View style={styles.imageContainer}>
-          {isLoading ? (
-            <View style={styles.placeholderImage}>
-              <ActivityIndicator size="large" color="#6366F1" />
-            </View>
-          ) : imageUrl ? (
-            <CachedImage
-              source={{ uri: imageUrl }}
-              style={styles.image}
-              contentFit="cover"
-              transition={200}
-              cachePolicy="memory-disk"
-            />
-          ) : null}
-        </View>
+      <KeyboardAvoidingView
+        style={{ flex: 1 }}
+        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+        keyboardVerticalOffset={Platform.OS === 'ios' ? 120 : 40}
+      >
+        <ScrollView
+          style={styles.scrollView}
+          contentContainerStyle={[styles.scrollViewContent, { paddingBottom: 70 }]}
+          keyboardShouldPersistTaps="handled"
+        >
+          <View style={styles.imageContainer}>
+            {isLoading ? (
+              <View style={styles.placeholderImage}>
+                <ActivityIndicator size="large" color="#6366F1" />
+              </View>
+            ) : imageUrl ? (
+              <CachedImage
+                source={{ uri: imageUrl }}
+                style={styles.image}
+                contentFit="cover"
+                transition={200}
+                cachePolicy="memory-disk"
+              />
+            ) : null}
+          </View>
 
-        <View style={styles.detailsContainer}>
-          {isEditing ? (
-            <>
-              <View style={styles.editSection}>
-                <Text style={styles.label}>Name</Text>
-                <TextInput
-                  style={styles.editInput}
-                  value={editName}
-                  onChangeText={setEditName}
-                  placeholder="Enter name"
-                  placeholderTextColor="#9CA3AF"
-                />
-              </View>
-              
-              <View style={styles.editSection}>
-                <Text style={styles.label}>Type</Text>
-                <TouchableOpacity 
-                  style={styles.editInput} 
-                  onPress={() => setShowTypePicker(true)}
+          <View style={styles.detailsContainer}>
+            {isEditing ? (
+              <>
+                <TouchableOpacity
+                  style={styles.aiButton}
+                  onPress={handleAIClassification}
+                  disabled={isClassifying}
                 >
-                  <Text style={[styles.editInputText, !editType && styles.placeholderText]}>
-                    {editType ? clothingTypes.find(item => item.value === editType)?.label : 'Pick a type'}
+                  <Ionicons name="sparkles" size={20} color="#6366F1" />
+                  <Text style={styles.aiButtonText}>
+                    {isClassifying ? 'Analyzing...' : 'Analyze with AI'}
                   </Text>
+                  {isClassifying && (
+                    <ActivityIndicator size="small" color="#6366F1" style={styles.aiButtonLoader} />
+                  )}
                 </TouchableOpacity>
-              </View>
-
-              <View style={styles.editSection}>
-                <Text style={styles.label}>Style</Text>
-                <TouchableOpacity 
-                  style={styles.editInput} 
-                  onPress={() => setShowStylePicker(true)}
-                >
-                  <Text style={[styles.editInputText, editStyles.length === 0 && styles.placeholderText]}>
-                    {editStyles.length > 0 
-                      ? `${editStyles.length} style${editStyles.length > 1 ? 's' : ''} selected`
-                      : 'Select styles'}
-                  </Text>
-                </TouchableOpacity>
-              </View>
-
-              <View style={styles.editSection}>
-                <Text style={styles.label}>Occasion</Text>
-                <TouchableOpacity 
-                  style={styles.editInput} 
-                  onPress={() => setShowOccasionPicker(true)}
-                >
-                  <Text style={[styles.editInputText, editOccasions.length === 0 && styles.placeholderText]}>
-                    {editOccasions.length > 0 
-                      ? `${editOccasions.length} occasion${editOccasions.length > 1 ? 's' : ''} selected`
-                      : 'Select occasions'}
-                  </Text>
-                </TouchableOpacity>
-              </View>
-            </>
-          ) : (
-            <>
-              <Text style={styles.name}>{item.name}</Text>
-              <Text style={styles.type}>Type: {item.type}</Text>
-              {item.styles && item.styles.length > 0 && (
-                <View style={styles.section}>
-                  <Text style={styles.sectionTitle}>Styles</Text>
-                  {renderTags(item.styles)}
+                <View style={styles.editSection}>
+                  <Text style={styles.label}>Name</Text>
+                  <TextInput
+                    style={styles.editInput}
+                    value={editName}
+                    onChangeText={setEditName}
+                    placeholder="Enter name"
+                    placeholderTextColor="#9CA3AF"
+                  />
                 </View>
-              )}
-              {item.occasions && item.occasions.length > 0 && (
-                <View style={styles.section}>
-                  <Text style={styles.sectionTitle}>Occasions</Text>
-                  {renderTags(item.occasions)}
+                
+                <View style={styles.editSection}>
+                  <Text style={styles.label}>Type</Text>
+                  <TouchableOpacity 
+                    style={styles.editInput} 
+                    onPress={() => setShowTypePicker(true)}
+                  >
+                    <Text style={[styles.editInputText, !editType && styles.placeholderText]}>
+                      {editType ? clothingTypes.find(item => item.value === editType)?.label : 'Pick a type'}
+                    </Text>
+                  </TouchableOpacity>
                 </View>
-              )}
-              <Text style={styles.date}>
-                Added: {new Date(item.created_at).toLocaleDateString()}
-              </Text>
-            </>
-          )}
-        </View>
-      </ScrollView>
+
+                <View style={styles.editSection}>
+                  <Text style={styles.label}>Style</Text>
+                  <TouchableOpacity 
+                    style={styles.editInput} 
+                    onPress={() => setShowStylePicker(true)}
+                  >
+                    <Text style={[styles.editInputText, editStyles.length === 0 && styles.placeholderText]}>
+                      {editStyles.length > 0 
+                        ? `${editStyles.length} style${editStyles.length > 1 ? 's' : ''} selected`
+                        : 'Select styles'}
+                    </Text>
+                  </TouchableOpacity>
+                </View>
+
+                <View style={styles.editSection}>
+                  <Text style={styles.label}>Occasion</Text>
+                  <TouchableOpacity 
+                    style={styles.editInput} 
+                    onPress={() => setShowOccasionPicker(true)}
+                  >
+                    <Text style={[styles.editInputText, editOccasions.length === 0 && styles.placeholderText]}>
+                      {editOccasions.length > 0 
+                        ? `${editOccasions.length} occasion${editOccasions.length > 1 ? 's' : ''} selected`
+                        : 'Select occasions'}
+                    </Text>
+                  </TouchableOpacity>
+                </View>
+
+                <View style={styles.editSection}>
+                  <Text style={styles.label}>Color</Text>
+                  <TextInput
+                    style={styles.editInput}
+                    value={editColor}
+                    onChangeText={setEditColor}
+                    placeholder="Enter color"
+                    placeholderTextColor="#9CA3AF"
+                  />
+                </View>
+
+                <View style={styles.editSection}>
+                  <Text style={styles.label}>Material</Text>
+                  <TextInput
+                    style={styles.editInput}
+                    value={editMaterial}
+                    onChangeText={setEditMaterial}
+                    placeholder="Enter material"
+                    placeholderTextColor="#9CA3AF"
+                  />
+                </View>
+
+                <View style={styles.editSection}>
+                  <Text style={styles.label}>Brand</Text>
+                  <TextInput
+                    style={styles.editInput}
+                    value={editBrand}
+                    onChangeText={setEditBrand}
+                    placeholder="Enter brand"
+                    placeholderTextColor="#9CA3AF"
+                  />
+                </View>
+
+                <View style={styles.editSection}>
+                  <Text style={styles.label}>Season</Text>
+                  <TextInput
+                    style={styles.editInput}
+                    value={editSeason}
+                    onChangeText={setEditSeason}
+                    placeholder="Enter season"
+                    placeholderTextColor="#9CA3AF"
+                  />
+                </View>
+
+                <View style={styles.editSection}>
+                  <Text style={styles.label}>Fit</Text>
+                  <TextInput
+                    style={styles.editInput}
+                    value={editFit}
+                    onChangeText={setEditFit}
+                    placeholder="Enter fit"
+                    placeholderTextColor="#9CA3AF"
+                  />
+                </View>
+
+                <View style={styles.editSection}>
+                  <Text style={styles.label}>Description</Text>
+                  <TextInput
+                    style={[styles.editInput, styles.largeInput]}
+                    value={editDescription}
+                    onChangeText={setEditDescription}
+                    placeholder="Enter description"
+                    placeholderTextColor="#9CA3AF"
+                    multiline
+                    numberOfLines={3}
+                    maxLength={300}
+                  />
+                </View>
+
+                <View style={styles.editSection}>
+                  <Text style={styles.label}>Notes</Text>
+                  <TextInput
+                    style={[styles.editInput, styles.largeInput]}
+                    value={editNotes}
+                    onChangeText={setEditNotes}
+                    placeholder="Enter notes (for your eyes only)"
+                    placeholderTextColor="#9CA3AF"
+                    multiline
+                    numberOfLines={3}
+                    maxLength={300}
+                  />
+                </View>
+              </>
+            ) : (
+              <>
+                <Text style={styles.name}>{item.name}</Text>
+                <Text style={styles.type}>Type: {item.type}</Text>
+                {item.styles && item.styles.length > 0 && (
+                  <View style={styles.section}>
+                    <Text style={styles.sectionTitle}>Styles</Text>
+                    {renderTags(item.styles)}
+                  </View>
+                )}
+                {item.occasions && item.occasions.length > 0 && (
+                  <View style={styles.section}>
+                    <Text style={styles.sectionTitle}>Occasions</Text>
+                    {renderTags(item.occasions)}
+                  </View>
+                )}
+                <Text style={styles.date}>
+                  Added: {new Date(item.created_at).toLocaleDateString()}
+                </Text>
+              </>
+            )}
+          </View>
+        </ScrollView>
+      </KeyboardAvoidingView>
 
       <View style={styles.buttonContainer}>
         {isEditing ? (
@@ -678,6 +849,36 @@ const styles = StyleSheet.create({
   },
   tagTextSelected: {
     color: '#FFFFFF',
+  },
+  aiButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: '#F3F4F6',
+    borderRadius: 12,
+    paddingVertical: 12,
+    paddingHorizontal: 16,
+    marginBottom: 20,
+    gap: 8,
+  },
+  aiButtonText: {
+    fontSize: 16,
+    color: '#6366F1',
+    fontWeight: '600',
+  },
+  aiButtonLoader: {
+    marginLeft: 8,
+  },
+  largeInput: {
+    minHeight: 60,
+    maxHeight: 120,
+    textAlignVertical: 'top',
+  },
+  scrollView: {
+    flex: 1,
+  },
+  scrollViewContent: {
+    padding: 20,
   },
 });
 

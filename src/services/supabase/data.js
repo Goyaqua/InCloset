@@ -29,7 +29,7 @@ export const getClothes = async (limit = null) => {
   }
 };
 
-export const addClothing = async (name, type, filePath, styles = [], occasions = []) => {
+export const addClothing = async (name, type, filePath, styles = [], occasions = [], color = '', material = '', brand = '', season = '', fit = '', notes = '', description = '') => {
   try {
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) throw new Error('User not authenticated');
@@ -39,11 +39,18 @@ export const addClothing = async (name, type, filePath, styles = [], occasions =
       .insert([{ 
         name,
         type,
-        enimage_path: filePath,
+        image_path: filePath,
         user_id: user.id,
         created_at: new Date().toISOString(),
         styles,
-        occasions
+        occasions,
+        color,
+        material,
+        brand,
+        season,
+        fit,
+        notes,
+        description
       }])
       .select()
       .single();
@@ -55,7 +62,7 @@ export const addClothing = async (name, type, filePath, styles = [], occasions =
   }
 };
 
-export const updateClothing = async (id, name, type) => {
+export const updateClothing = async (id, name, type, styles = [], occasions = [], color = '', material = '', brand = '', season = '', fit = '', notes = '', description = '') => {
   try {
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) throw new Error('User not authenticated');
@@ -64,10 +71,19 @@ export const updateClothing = async (id, name, type) => {
       .from('clothes')
       .update({ 
         name,
-        type
+        type,
+        styles,
+        occasions,
+        color,
+        material,
+        brand,
+        season,
+        fit,
+        notes,
+        description
       })
       .eq('id', id)
-      .eq('user_id', user.id) // Ensure user can only update their own items
+      .eq('user_id', user.id)
       .select()
       .single();
     

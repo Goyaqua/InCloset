@@ -64,7 +64,7 @@ const ClothingItem = ({ imagePath, name, onPress }) => {
           />
         )}
       </View>
-      <Text style={styles.name} numberOfLines={1}>
+      <Text style={styles.name} numberOfLines={2}>
         {name}
       </Text>
     </TouchableOpacity>
@@ -75,7 +75,8 @@ const styles = StyleSheet.create({
   container: {
     width: '100%',
     alignItems: 'center',
-    marginBottom: spacing.md,
+    marginBottom: spacing.lg,
+    paddingHorizontal: 4,
   },
   imageContainer: {
     width: '100%',
@@ -95,11 +96,13 @@ const styles = StyleSheet.create({
   },
   name: {
     ...typography.caption,
-    fontSize: 14,
+    fontSize: 12,
     color: colors.text,
     textAlign: 'center',
     fontWeight: 'bold',
     marginTop: spacing.xs,
+    marginBottom: spacing.xs,
+    lineHeight: 15,
   },
   tagsContainer: {
     flexDirection: 'row',
