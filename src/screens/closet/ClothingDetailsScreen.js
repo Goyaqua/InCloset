@@ -24,11 +24,8 @@ const clothingTypes = [
   { label: 'Pick a type', value: '' },
   { label: 'Top', value: 'top' },
   { label: 'Bottom', value: 'bottom' },
-  { label: 'Dress', value: 'dress' },
   { label: 'Shoes', value: 'shoes' },
   { label: 'Accessory', value: 'accessory' },
-  { label: 'Outerwear', value: 'outerwear' },
-  { label: 'Bag', value: 'bag' },
 ];
 
 const clothingStyles = [

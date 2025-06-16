@@ -28,14 +28,10 @@ const SCREEN_WIDTH = Dimensions.get('window').width;
 const SCREEN_HEIGHT = Dimensions.get('window').height;
 
 const clothingCategories = [
-  { id: 'ALL', label: 'ALL', icon: null, types: [] },
   { id: 'top', label: 'Tops', icon: '👕', types: ['top'] },
   { id: 'bottom', label: 'Bottoms', icon: '👖', types: ['bottom'] },
-  { id: 'dress', label: 'Dresses', icon: '👗', types: ['dress'] },
   { id: 'shoes', label: 'Shoes', icon: '👟', types: ['shoes'] },
   { id: 'accessory', label: 'Accessories', icon: '💍', types: ['accessory'] },
-  { id: 'outerwear', label: 'Outerwear', icon: '🧥', types: ['outerwear'] },
-  { id: 'bag', label: 'Bags', icon: '👜', types: ['bag'] },
 ];
 
 const CombineClothesScreen = ({ navigation }) => {
@@ -95,7 +91,7 @@ const CombineClothesScreen = ({ navigation }) => {
   };
 
   const getFilteredClothes = () => {
-    if (activeFilters.length === 0) return allClothes;
+    if (activeFilters.length === 0) return [];
     return allClothes.filter(item => activeFilters.includes(item.type));
   };
 
@@ -260,31 +256,18 @@ const CombineClothesScreen = ({ navigation }) => {
               key={category.id}
               style={[
                 styles.filterChip,
-                (category.id === 'ALL' ? activeFilters.length === 0 : activeFilters.some(type => category.types.includes(type))) && styles.filterChipActive
+                activeFilters[0] === category.types[0] && styles.filterChipActive
               ]}
               onPress={() => {
-                if (category.id === 'ALL') {
-                  setActiveFilters([]);
-                } else {
-                  setActiveFilters(prev => {
-                    const newFilters = [...prev];
-                    category.types.forEach(type => {
-                      const index = newFilters.indexOf(type);
-                      if (index === -1) {
-                        newFilters.push(type);
-                      } else {
-                        newFilters.splice(index, 1);
-                      }
-                    });
-                    return newFilters;
-                  });
-                }
+                setActiveFilters(prev =>
+                  prev[0] === category.types[0] ? [] : [category.types[0]]
+                );
               }}
             >
               {category.icon ? (
                 <Text style={[
                   styles.filterChipIcon,
-                  (category.id === 'ALL' ? activeFilters.length === 0 : activeFilters.some(type => category.types.includes(type))) && styles.filterChipIconActive
+                  activeFilters[0] === category.types[0] && styles.filterChipIconActive
                 ]}>
                   {category.icon}
                 </Text>

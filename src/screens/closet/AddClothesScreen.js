@@ -19,11 +19,8 @@ const clothingTypes = [
   { label: 'Pick a type', value: '' },
   { label: 'Top', value: 'top' },
   { label: 'Bottom', value: 'bottom' },
-  { label: 'Dress', value: 'dress' },
   { label: 'Shoes', value: 'shoes' },
   { label: 'Accessory', value: 'accessory' },
-  { label: 'Outerwear', value: 'outerwear' },
-  { label: 'Bag', value: 'bag' },
 ];
 
 const clothingStyles = [
@@ -386,23 +383,25 @@ const AddClothesScreen = ({ navigation }) => {
           <View style={styles.content}>
             <TouchableOpacity style={styles.imagePicker} onPress={showImagePicker}>
               {selectedImage ? (
-                <View style={styles.imageContainer}>
-                  <Image 
-                    source={{ uri: processedImage ? processedImage.uri : selectedImage.uri }} 
-                    style={styles.selectedImage} 
-                  />
+                <>
+                  <View style={styles.imageContainer}>
+                    <Image 
+                      source={{ uri: processedImage ? processedImage.uri : selectedImage.uri }} 
+                      style={styles.selectedImage} 
+                    />
+                    {isProcessingBackground && (
+                      <View style={styles.processingOverlay}>
+                        <ActivityIndicator size="large" color="#6366F1" />
+                        <Text style={styles.processingText}>Removing Background...</Text>
+                      </View>
+                    )}
+                  </View>
                   {processedImage && (
                     <View style={styles.processedBadge}>
                       <Text style={styles.processedBadgeText}>✨ Background Removed</Text>
                     </View>
                   )}
-                  {isProcessingBackground && (
-                    <View style={styles.processingOverlay}>
-                      <ActivityIndicator size="large" color="#6366F1" />
-                      <Text style={styles.processingText}>Removing Background...</Text>
-                    </View>
-                  )}
-                </View>
+                </>
               ) : (
                 <Text style={styles.plusIcon}>+</Text>
               )}
@@ -412,7 +411,7 @@ const AddClothesScreen = ({ navigation }) => {
               <TouchableOpacity 
                 style={styles.aiButton} 
                 onPress={handleAIClassification}
-                disabled={isClassifying}
+                disabled={isClassifying || isProcessingBackground}
               >
                 <Ionicons name="sparkles" size={20} color="#6366F1" />
                 <Text style={styles.aiButtonText}>
@@ -757,6 +756,8 @@ const styles = StyleSheet.create({
     position: 'relative',
     width: '100%',
     height: '100%',
+    borderRadius: 18,
+    overflow: 'hidden',
   },
   selectedImage: {
     width: '100%',
@@ -871,12 +872,17 @@ const styles = StyleSheet.create({
   },
   processedBadge: {
     position: 'absolute',
-    top: 10,
-    right: 10,
+    top: 0,
+    right: 0,
+    marginTop: 6,
+    marginRight: 6,
     backgroundColor: '#6366F1',
     borderRadius: 12,
-    paddingHorizontal: 4,
+    paddingHorizontal: 8,
     paddingVertical: 2,
+    zIndex: 2,
+    alignSelf: 'flex-end',
+    elevation: 2,
   },
   processedBadgeText: {
     color: '#ffffff',
@@ -892,12 +898,14 @@ const styles = StyleSheet.create({
     backgroundColor: 'rgba(0, 0, 0, 0.5)',
     justifyContent: 'center',
     alignItems: 'center',
+    borderRadius: 18,
   },
   processingText: {
     color: '#ffffff',
     fontSize: 16,
     fontWeight: '600',
     marginTop: 10,
+    textAlign: 'center',
   },
   previewModalContainer: {
     flex: 1,

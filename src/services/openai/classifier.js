@@ -27,7 +27,7 @@ export const classifyClothingItem = async (imageUrl) => {
   "description": "string"
 }
 Use only the following values for type, styles, and occasions:
-Types: top, bottom, dress, shoes, accessory, outerwear, bag
+Types: top, bottom, shoes, accessory
 Styles: casual, formal, business, party, sporty, streetwear, elegant, romantic, edgy, retro, minimalist
 Occasions: work, interview, wedding, date, gym, school, beach, holiday, party, funeral, everyday, chill at home.`
           },

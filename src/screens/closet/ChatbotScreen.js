@@ -61,8 +61,9 @@ const ChatbotScreen = () => {
     Keyboard.dismiss();
 
     try {
-      const systemPrompt = `You are INCLOSET AI Stylist. The user owns a personal closet catalog provided in JSON.\nEach item has id, name, type, color, material, brand, season, fit, styles, occasions, description.\nWhen you answer, you can either:\n1) Ask a follow-up question if you need more info. Respond ONLY with JSON of the form {"question": "<your question>"}.\n2) Propose an outfit. Respond ONLY with JSON of the form {"outfit": [<item_id>, ...], "commentary": "<why these items work together>"}. Do NOT include anything else.`;
+      const systemPrompt = `You are INCLOSET AI Stylist. The user owns a personal closet catalog provided in JSON.\nEach item has id, name, type, color, material, brand, season, fit, styles, occasions, description.\nWhen you propose an outfit, you MUST always include exactly one top, one bottom, and one shoe, unless a dress is used. If a dress is included, do not include a bottom. You may include any number (including none) of accessories.\nWhen you answer, you can either:\n1) Ask a follow-up question if you need more info. Respond ONLY with JSON of the form {\"question\": \"<your question>\"}.\n2) Propose an outfit. Respond ONLY with JSON of the form {\"outfit\": [<item_id>, ...], \"commentary\": \"<why these items work together>\"}. Do NOT include anything else.`;
 
+      // Prepare chat history for OpenAI
       const payloadMessages = [
         { role: 'system', content: systemPrompt },
         { role: 'user', content: JSON.stringify({ closet: closetData }) },
@@ -152,31 +153,32 @@ const ChatbotScreen = () => {
       <KeyboardAvoidingView
         style={{ flex: 1 }}
         behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-        keyboardVerticalOffset={Platform.OS === 'ios' ? 100 : 30}
+        keyboardVerticalOffset={Platform.OS === 'ios' ? 80 : 0}
       >
-        {renderOutfitPreview()}
-
-        <FlatList
-          ref={flatListRef}
-          data={messages}
-          renderItem={renderMessage}
-          keyExtractor={item => item.id}
-          contentContainerStyle={styles.messagesContainer}
-          onContentSizeChange={() => flatListRef.current?.scrollToEnd({ animated: true })}
-        />
-        <View style={styles.inputContainer}>
-          <TextInput
-            style={styles.input}
-            value={input}
-            onChangeText={setInput}
-            placeholder="Type your message..."
-            placeholderTextColor="#9CA3AF"
-            onSubmitEditing={sendMessage}
-            returnKeyType="send"
+        <View style={{ flex: 1 }}>
+          {renderOutfitPreview()}
+          <FlatList
+            ref={flatListRef}
+            data={messages}
+            renderItem={renderMessage}
+            keyExtractor={item => item.id}
+            contentContainerStyle={{ ...styles.messagesContainer, paddingBottom: 70 }}
+            onContentSizeChange={() => flatListRef.current?.scrollToEnd({ animated: true })}
           />
-          <TouchableOpacity style={styles.sendButton} onPress={sendMessage}>
-            <Ionicons name="send" size={22} color="#6366F1" />
-          </TouchableOpacity>
+          <View style={styles.inputContainerAbsolute}>
+            <TextInput
+              style={styles.input}
+              value={input}
+              onChangeText={setInput}
+              placeholder="Type your message..."
+              placeholderTextColor="#9CA3AF"
+              onSubmitEditing={sendMessage}
+              returnKeyType="send"
+            />
+            <TouchableOpacity style={styles.sendButton} onPress={sendMessage}>
+              <Ionicons name="send" size={22} color="#6366F1" />
+            </TouchableOpacity>
+          </View>
         </View>
       </KeyboardAvoidingView>
     </SafeAreaView>
@@ -220,13 +222,18 @@ const styles = StyleSheet.create({
     color: '#222',
     fontSize: 15,
   },
-  inputContainer: {
+  inputContainerAbsolute: {
     flexDirection: 'row',
     alignItems: 'center',
     padding: 12,
     borderTopWidth: 1,
     borderColor: '#E5E7EB',
     backgroundColor: '#fff',
+    position: 'absolute',
+    left: 0,
+    right: 0,
+    bottom: 0,
+    zIndex: 10,
   },
   input: {
     flex: 1,

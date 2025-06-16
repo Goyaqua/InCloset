@@ -27,7 +27,7 @@ const ClothesGrid = ({ clothes, onPressItem, onPressAdd }) => {
     );
   };
 
-  const data = [...clothes, { id: 'add-button', isAddButton: true }];
+  const data = clothes;
 
   return (
     <View style={styles.gridContainer}>
@@ -51,7 +51,7 @@ const styles = StyleSheet.create({
   },
   listContainer: {
     paddingHorizontal: 0,
-    paddingBottom: 200,
+    paddingBottom: 8,
   },
   clothingItem: {
     width: '32%',
