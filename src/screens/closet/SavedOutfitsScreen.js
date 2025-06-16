@@ -8,7 +8,8 @@ import {
   TouchableOpacity,
   ActivityIndicator,
   Dimensions,
-  Alert
+  Alert,
+  Platform
 } from 'react-native';
 import { colors, spacing } from '../../styles/theme';
 import { getOutfits, getFavorites, deleteOutfit } from '../../services/supabase/data';
@@ -133,13 +134,20 @@ const SavedOutfitsScreen = ({ route, navigation }) => {
         <Text style={styles.title}>
           {type === 'saved' ? 'SAVED OUTFITS' : 'FAVORITE OUTFITS'}
         </Text>
-        <TouchableOpacity onPress={handleAddPress} style={styles.addButton}>
-          <MaterialCommunityIcons name="plus" size={24} color={colors.primary} />
-        </TouchableOpacity>
       </View>
 
       <ScrollView style={styles.scrollView}>
         <View style={styles.grid}>
+          <View style={styles.gridItem}>
+            <TouchableOpacity
+              style={[styles.plusCard, { width: ITEM_WIDTH, height: 200, borderRadius: 16, justifyContent: 'center', alignItems: 'center', backgroundColor: colors.surface, borderWidth: 1, borderColor: colors.border }]}
+              onPress={handleAddPress}
+              activeOpacity={0.8}
+            >
+              <MaterialCommunityIcons name="plus" size={48} color={colors.primary} />
+              <Text style={{ color: colors.textSecondary, marginTop: 8, fontSize: 14, fontWeight: '500' }}>Add Outfit</Text>
+            </TouchableOpacity>
+          </View>
           {outfits.map((outfit) => (
             <View key={outfit.id} style={styles.gridItem}>
               <OutfitItem
@@ -173,6 +181,7 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     paddingHorizontal: spacing.md,
     paddingVertical: spacing.md,
+    paddingTop: Platform.OS === 'android' ? 40 : spacing.md,
     borderBottomWidth: 1,
     borderBottomColor: colors.border,
   },
@@ -183,9 +192,6 @@ const styles = StyleSheet.create({
     fontSize: 18,
     fontWeight: '600',
     letterSpacing: 1,
-  },
-  addButton: {
-    padding: spacing.xs,
   },
   scrollView: {
     flex: 1,
@@ -199,6 +205,12 @@ const styles = StyleSheet.create({
   gridItem: {
     width: ITEM_WIDTH,
     marginBottom: spacing.md,
+  },
+  plusCard: {
+    justifyContent: 'center',
+    alignItems: 'center',
+    borderWidth: 1,
+    borderColor: colors.border,
   },
 });
 

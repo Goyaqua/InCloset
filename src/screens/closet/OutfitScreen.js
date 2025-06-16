@@ -9,10 +9,11 @@ import {
   TouchableOpacity,
   Alert,
   ActivityIndicator,
-  Dimensions
+  Dimensions,
+  Platform
 } from 'react-native';
 import { colors, spacing } from '../../styles/theme';
-import { getOutfits, deleteOutfit, toggleFavorite, getFavorites } from '../../services/supabase/data';
+import { getOutfits, deleteOutfit, toggleFavorite, getFavorites, getClothes } from '../../services/supabase/data';
 import MaterialCommunityIcons from 'react-native-vector-icons/MaterialCommunityIcons';
 import ClothingItem from '../../components/specific/home/ClothingItem';
 import { supabase } from '../../services/supabase/auth';
@@ -20,14 +21,31 @@ import { supabase } from '../../services/supabase/auth';
 const { width } = Dimensions.get('window');
 
 const OutfitScreen = ({ route, navigation }) => {
-  const { outfitId } = route.params;
+  const { outfitId, refresh } = route.params;
   const [loading, setLoading] = useState(true);
   const [outfit, setOutfit] = useState(null);
   const [outfitImageUrl, setOutfitImageUrl] = useState(null);
+  const [itemLoading, setItemLoading] = useState(false);
 
   useEffect(() => {
     loadOutfit();
   }, [outfitId]);
+
+  // Handle refresh parameter and focus events
+  useEffect(() => {
+    if (refresh) {
+      loadOutfit();
+    }
+  }, [refresh]);
+
+  // Add focus listener to refresh data when screen comes into focus
+  useEffect(() => {
+    const unsubscribe = navigation.addListener('focus', () => {
+      loadOutfit();
+    });
+
+    return unsubscribe;
+  }, [navigation]);
 
   const getSignedUrl = async (path) => {
     try {
@@ -133,11 +151,25 @@ const OutfitScreen = ({ route, navigation }) => {
     }
   };
 
-  const handleClothingPress = (clothingId) => {
-    navigation.navigate('ClothingDetails', { itemId: clothingId });
+  const handleClothingPress = async (clothingId) => {
+    setItemLoading(true);
+    try {
+      const { data, error } = await getClothes();
+      if (error) throw error;
+      const clothingItem = data.find(i => i.id === clothingId);
+      if (clothingItem) {
+        navigation.navigate('ClothingDetails', { item: clothingItem });
+      } else {
+        Alert.alert('Error', 'Clothing item not found.');
+      }
+    } catch (err) {
+      Alert.alert('Error', 'Failed to load clothing item.');
+    } finally {
+      setItemLoading(false);
+    }
   };
 
-  if (loading) {
+  if (loading || itemLoading) {
     return (
       <SafeAreaView style={styles.container}>
         <View style={styles.loadingContainer}>
@@ -159,14 +191,16 @@ const OutfitScreen = ({ route, navigation }) => {
 
   return (
     <SafeAreaView style={styles.container}>
-      <ScrollView style={styles.scrollView}>
-        {/* Header with back button */}
+      <View style={[styles.headerSafe, Platform.OS === 'android' && { paddingTop: 32 }]}> 
         <View style={styles.header}>
           <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backButton}>
             <MaterialCommunityIcons name="arrow-left" size={24} color={colors.text} />
           </TouchableOpacity>
-          <Text style={styles.title}>OUTFIT DETAILS</Text>
+          <Text style={styles.pageTitleHeader}>OUTFIT DETAILS</Text>
           <View style={styles.headerRight}>
+            <TouchableOpacity onPress={() => navigation.navigate('Combine', { screen: 'CombineScreen', params: { outfitId, outfit } })} style={styles.actionButton}>
+              <MaterialCommunityIcons name="pencil" size={22} color={colors.text} />
+            </TouchableOpacity>
             <TouchableOpacity onPress={handleToggleFavorite} style={styles.actionButton}>
               <MaterialCommunityIcons
                 name={outfit.isFavorite ? "heart" : "heart-outline"}
@@ -179,37 +213,45 @@ const OutfitScreen = ({ route, navigation }) => {
             </TouchableOpacity>
           </View>
         </View>
-
+      </View>
+      <View style={styles.titleContainer}>
+        <Text style={styles.outfitName}>{outfit.title}</Text>
+      </View>
+      <ScrollView style={styles.scrollView} contentContainerStyle={{ paddingBottom: 32 }}>
         {/* Outfit Image */}
-        <View style={styles.imageContainer}>
-          {outfitImageUrl ? (
-            <Image
-              source={{ uri: outfitImageUrl }}
-              style={styles.outfitImage}
-              resizeMode="contain"
-            />
-          ) : (
-            <View style={styles.imagePlaceholder}>
-              <MaterialCommunityIcons name="image-outline" size={48} color={colors.textSecondary} />
-            </View>
-          )}
+        <View style={styles.imageCard}>
+          <View style={styles.imageContainer}>
+            {outfitImageUrl ? (
+              <Image
+                source={{ uri: outfitImageUrl }}
+                style={styles.outfitImage}
+                resizeMode="contain"
+              />
+            ) : (
+              <View style={styles.imagePlaceholder}>
+                <MaterialCommunityIcons name="image-outline" size={48} color={colors.textSecondary} />
+              </View>
+            )}
+          </View>
         </View>
-
-        {/* Outfit Name */}
-        <View style={styles.nameContainer}>
-          <Text style={styles.outfitName}>{outfit.title}</Text>
-        </View>
-
         {/* Items Grid */}
         <View style={styles.itemsContainer}>
           <Text style={styles.sectionTitle}>ITEMS IN THIS OUTFIT</Text>
-          <View style={styles.grid}>
-            {outfit.items.map((item, index) => (
-              <View key={item.id} style={styles.gridItem}>
-                <ClothingItem
-                  imagePath={item.image}
-                  onPress={() => handleClothingPress(item.id)}
-                />
+          <View style={styles.closetGrid}>
+            {Array.from({ length: Math.ceil(outfit.items.length / 3) }).map((_, rowIdx) => (
+              <View key={rowIdx} style={styles.closetGridRow}>
+                {outfit.items.slice(rowIdx * 3, rowIdx * 3 + 3).map(item => (
+                  <View key={item.id} style={styles.closetGridItem}>
+                    <ClothingItem
+                      imagePath={item.image}
+                      onPress={() => handleClothingPress(item.id)}
+                    />
+                  </View>
+                ))}
+                {/* Fill empty columns if needed */}
+                {Array.from({ length: 3 - (outfit.items.slice(rowIdx * 3, rowIdx * 3 + 3).length) }).map((_, idx) => (
+                  <View key={`empty-${idx}`} style={styles.closetGridItem} />
+                ))}
               </View>
             ))}
           </View>
@@ -254,11 +296,6 @@ const styles = StyleSheet.create({
   backButton: {
     padding: spacing.xs,
   },
-  title: {
-    fontSize: 18,
-    fontWeight: '600',
-    letterSpacing: 1,
-  },
   headerRight: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -284,9 +321,11 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     backgroundColor: colors.surface,
   },
-  nameContainer: {
+  titleContainer: {
+    alignItems: 'center',
+    marginTop: spacing.lg,
+    marginBottom: spacing.md,
     paddingHorizontal: spacing.lg,
-    marginBottom: spacing.lg,
   },
   outfitName: {
     fontSize: 24,
@@ -302,16 +341,41 @@ const styles = StyleSheet.create({
     marginBottom: spacing.md,
     color: colors.textSecondary,
   },
-  grid: {
+  imageCard: {
+    margin: spacing.lg,
+  },
+  closetGrid: {
     flexDirection: 'row',
     flexWrap: 'wrap',
     justifyContent: 'space-between',
     marginHorizontal: -spacing.xs,
   },
-  gridItem: {
+  closetGridItem: {
     width: width * 0.3,
     marginHorizontal: spacing.xs,
     marginBottom: spacing.md,
+    backgroundColor: 'transparent',
+    borderRadius: 0,
+    shadowColor: 'transparent',
+    elevation: 0,
+    overflow: 'visible',
+  },
+  closetGridRow: {
+    flexDirection: 'row',
+    justifyContent: 'flex-start',
+    marginBottom: spacing.md,
+  },
+  headerSafe: {
+    backgroundColor: colors.background,
+    zIndex: 10,
+  },
+  pageTitleHeader: {
+    flex: 1,
+    textAlign: 'center',
+    fontSize: 18,
+    fontWeight: '700',
+    letterSpacing: 1,
+    color: colors.textSecondary,
   },
 });
 

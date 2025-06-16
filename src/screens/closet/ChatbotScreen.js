@@ -61,16 +61,27 @@ const ChatbotScreen = () => {
     Keyboard.dismiss();
 
     try {
-      const systemPrompt = `You are INCLOSET AI Stylist. The user owns a personal closet catalog provided in JSON.\nEach item has id, name, type, color, material, brand, season, fit, styles, occasions, description.\nWhen you propose an outfit, you MUST always include exactly one top, one bottom, and one shoe, unless a dress is used. If a dress is included, do not include a bottom. You may include any number (including none) of accessories.\nWhen you answer, you can either:\n1) Ask a follow-up question if you need more info. Respond ONLY with JSON of the form {\"question\": \"<your question>\"}.\n2) Propose an outfit. Respond ONLY with JSON of the form {\"outfit\": [<item_id>, ...], \"commentary\": \"<why these items work together>\"}. Do NOT include anything else.`;
+      const systemPrompt = `You are INCLOSET's personal AI fashion stylist. The user owns a closet represented as JSON.\nEach item has: id, name, type, color, material, brand, season, fit, styles, occasions, description.\nOutfit rules:\n• Always include EXACTLY one shoe.\n• If any item of type \"dress\" is used, DO NOT include items of type \"top\" or \"bottom\".\n• Otherwise, include EXACTLY one top AND one bottom.\n• You may optionally include any number of accessories.\nRespond with EITHER:\n1) A follow-up question in JSON: {\"question\": \"...\"}\n2) A complete outfit in JSON: {\"outfit\": [<item_id>, ...], \"commentary\": \"...\"}.\nReturn ONLY JSON, no extra text.`;
 
-      // Prepare chat history for OpenAI
+      // Build chat history (exclude the initial system prompt)
+      const chatHistory = messages.map(m => ({
+        role: m.sender === 'user' ? 'user' : 'assistant',
+        content: m.text
+      }));
+
+      // Add last outfit context if we have suggested outfit
+      const lastOutfitContext = outfitIds.length
+        ? { last_outfit: outfitIds }
+        : {};
+
       const payloadMessages = [
         { role: 'system', content: systemPrompt },
-        { role: 'user', content: JSON.stringify({ closet: closetData }) },
+        { role: 'user', content: JSON.stringify({ closet: closetData, ...lastOutfitContext }) },
+        ...chatHistory,
         { role: 'user', content: input }
       ];
 
-      console.log('Sending request to OpenAI:', { model: 'gpt-4o-mini', messages: payloadMessages });
+      console.log('Sending request to OpenAI:', { model: 'gpt-4o', messages: payloadMessages });
 
       const response = await fetch('https://api.openai.com/v1/chat/completions', {
         method: 'POST',
@@ -152,33 +163,33 @@ const ChatbotScreen = () => {
     <SafeAreaView style={styles.container}>
       <KeyboardAvoidingView
         style={{ flex: 1 }}
-        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-        keyboardVerticalOffset={Platform.OS === 'ios' ? 80 : 0}
+        behavior='padding'
+        keyboardVerticalOffset={Platform.OS === 'ios' ? 120 : 90}
       >
+        {renderOutfitPreview()}
         <View style={{ flex: 1 }}>
-          {renderOutfitPreview()}
           <FlatList
             ref={flatListRef}
             data={messages}
             renderItem={renderMessage}
             keyExtractor={item => item.id}
-            contentContainerStyle={{ ...styles.messagesContainer, paddingBottom: 70 }}
+            contentContainerStyle={{ ...styles.messagesContainer, paddingBottom: 120 }}
             onContentSizeChange={() => flatListRef.current?.scrollToEnd({ animated: true })}
           />
-          <View style={styles.inputContainerAbsolute}>
-            <TextInput
-              style={styles.input}
-              value={input}
-              onChangeText={setInput}
-              placeholder="Type your message..."
-              placeholderTextColor="#9CA3AF"
-              onSubmitEditing={sendMessage}
-              returnKeyType="send"
-            />
-            <TouchableOpacity style={styles.sendButton} onPress={sendMessage}>
-              <Ionicons name="send" size={22} color="#6366F1" />
-            </TouchableOpacity>
-          </View>
+        </View>
+        <View style={styles.inputContainer}>
+          <TextInput
+            style={styles.input}
+            value={input}
+            onChangeText={setInput}
+            placeholder="Type your message..."
+            placeholderTextColor="#9CA3AF"
+            onSubmitEditing={sendMessage}
+            returnKeyType="send"
+          />
+          <TouchableOpacity style={styles.sendButton} onPress={sendMessage}>
+            <Ionicons name="send" size={22} color="#6366F1" />
+          </TouchableOpacity>
         </View>
       </KeyboardAvoidingView>
     </SafeAreaView>
@@ -222,18 +233,13 @@ const styles = StyleSheet.create({
     color: '#222',
     fontSize: 15,
   },
-  inputContainerAbsolute: {
+  inputContainer: {
     flexDirection: 'row',
     alignItems: 'center',
     padding: 12,
     borderTopWidth: 1,
     borderColor: '#E5E7EB',
     backgroundColor: '#fff',
-    position: 'absolute',
-    left: 0,
-    right: 0,
-    bottom: 0,
-    zIndex: 10,
   },
   input: {
     flex: 1,

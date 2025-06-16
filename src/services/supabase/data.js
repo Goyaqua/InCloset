@@ -179,7 +179,9 @@ export const getOutfits = async () => {
         isFavorite: favoritedOutfitIds.has(outfit.id),
         items: outfit.outfit_items?.map(item => ({
           id: item.clothes?.id,
-          image: item.clothes?.image_path
+          image: item.clothes?.image_path,
+          name: item.clothes?.name,
+          type: item.clothes?.type
         })) || []
       };
     }) || [];
@@ -225,6 +227,55 @@ export const addOutfit = async (name, clothingIds, imagePath) => {
     return { data: outfit, error: null };
   } catch (error) {
     console.error('Error adding outfit:', error);
+    return { data: null, error };
+  }
+};
+
+// Update an existing outfit with new name, clothing list, and image
+export const updateOutfit = async (outfitId, name, clothingIds, imagePath) => {
+  try {
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) throw new Error('User not authenticated');
+
+    // First update the outfits table (name and image)
+    const { data: updatedOutfit, error: outfitError } = await supabase
+      .from('outfits')
+      .update({
+        name,
+        image_path: imagePath,
+      })
+      .eq('id', outfitId)
+      .eq('user_id', user.id)
+      .select()
+      .single();
+
+    if (outfitError) throw outfitError;
+
+    // Remove existing outfit items
+    const { error: deleteItemsError } = await supabase
+      .from('outfit_items')
+      .delete()
+      .eq('outfit_id', outfitId);
+
+    if (deleteItemsError) throw deleteItemsError;
+
+    // Insert updated outfit items
+    const newItems = clothingIds.map(clothingId => ({
+      outfit_id: outfitId,
+      clothing_id: clothingId,
+    }));
+
+    if (newItems.length) {
+      const { error: insertItemsError } = await supabase
+        .from('outfit_items')
+        .insert(newItems);
+
+      if (insertItemsError) throw insertItemsError;
+    }
+
+    return { data: updatedOutfit, error: null };
+  } catch (error) {
+    console.error('Error updating outfit:', error);
     return { data: null, error };
   }
 };

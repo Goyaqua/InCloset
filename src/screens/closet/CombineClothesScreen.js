@@ -14,7 +14,7 @@ import {
   TouchableWithoutFeedback,
 } from 'react-native';
 import { supabase } from '../../services/supabase/auth';
-import { addOutfit } from '../../services/supabase/data';
+import { addOutfit, updateOutfit } from '../../services/supabase/data';
 import { colors, spacing, typography } from '../../styles/theme';
 import DraggableClothingItem from '../../components/specific/closet/DraggableClothingItem';
 import ClothingItem from '../../components/specific/home/ClothingItem';
@@ -34,30 +34,94 @@ const clothingCategories = [
   { id: 'accessory', label: 'Accessories', icon: '💍', types: ['accessory'] },
 ];
 
-const CombineClothesScreen = ({ navigation }) => {
+const CombineClothesScreen = ({ route, navigation }) => {
+  const { outfitId = null, outfit = null } = route?.params || {};
   const boardRef = useRef(null);
-  const [outfitName, setOutfitName] = useState('My New Outfit');
+  const [outfitName, setOutfitName] = useState(outfit?.title || 'My New Outfit');
   const [isEditingName, setIsEditingName] = useState(false);
   const [selectedItems, setSelectedItems] = useState([]);
   const [allClothes, setAllClothes] = useState([]);
   const [showFilterSheet, setShowFilterSheet] = useState(false);
-  const [activeFilters, setActiveFilters] = useState([]);
+  const [activeFilters, setActiveFilters] = useState(['top']);
   const [isSaving, setIsSaving] = useState(false);
   const [selectedItemId, setSelectedItemId] = useState(null);
   const [lastSelectedId, setLastSelectedId] = useState(null);
+  const preloadDoneRef = useRef(false);
 
   useEffect(() => {
     fetchClothes();
   }, []);
 
+  // Set outfit name when outfit changes (for editing)
+  useEffect(() => {
+    if (outfit?.title && outfitId) {
+      setOutfitName(outfit.title);
+    }
+  }, [outfit, outfitId]);
+
   // Add focus listener to refresh data when screen comes into focus
   useEffect(() => {
     const unsubscribe = navigation.addListener('focus', () => {
+      // Reset the preload flag to allow reloading when data is refreshed
+      preloadDoneRef.current = false;
       fetchClothes();
     });
 
     return unsubscribe;
   }, [navigation]);
+
+  // When all clothes are fetched and we have an outfit to edit, preload items
+  useEffect(() => {
+    if (!outfit || preloadDoneRef.current || allClothes.length === 0) return;
+
+    console.log('Loading outfit items for editing:', outfit.items);
+    console.log('Available clothes count:', allClothes.length);
+
+    const initialItems = outfit.items
+      ?.map((item) => {
+        // First try to use the item data directly if it has all required fields
+        if (item.name && item.type && item.image) {
+          console.log('Using outfit item data directly:', item.name);
+          return {
+            id: item.id,
+            name: item.name,
+            image_path: item.image,
+            type: item.type,
+            boardId: Date.now().toString() + Math.random().toString().slice(2),
+            position: { x: 50, y: 50 },
+          };
+        }
+        
+        // Fallback: try to find in allClothes
+        const clothing = allClothes.find((c) => c.id === item.id);
+        if (!clothing) {
+          console.warn('Could not find clothing item with ID:', item.id);
+          return null;
+        }
+        console.log('Found matching clothing item:', clothing.name, 'for ID:', item.id);
+        return {
+          id: clothing.id,
+          name: clothing.name,
+          image_path: clothing.image_path,
+          type: clothing.type,
+          boardId: Date.now().toString() + Math.random().toString().slice(2),
+          position: { x: 50, y: 50 },
+        };
+      })
+      .filter(Boolean);
+
+    console.log('Loaded initial items for editing:', initialItems?.length || 0);
+
+    if (initialItems?.length) {
+      setSelectedItems(initialItems);
+      // Optionally set filters to include the first item's type
+      if (initialItems[0]?.type) {
+        setActiveFilters([initialItems[0].type]);
+      }
+    }
+
+    preloadDoneRef.current = true;
+  }, [allClothes, outfit]);
 
   const fetchClothes = async () => {
     try {
@@ -218,16 +282,28 @@ const CombineClothesScreen = ({ navigation }) => {
       console.log('Upload successful:', uploadData);
 
       const clothingIds = selectedItems.map(item => item.id);
-      const { data: outfit, error } = await addOutfit(outfitName, clothingIds, fileName);
+
+      let outfitResponse;
+      let error;
+      if (outfitId) {
+        ({ data: outfitResponse, error } = await updateOutfit(outfitId, outfitName, clothingIds, fileName));
+      } else {
+        ({ data: outfitResponse, error } = await addOutfit(outfitName, clothingIds, fileName));
+      }
 
       if (error) throw error;
 
       resetOutfit();
-      navigation.navigate('Home', { 
-        screen: 'HomeScreen',
-        params: { refresh: true }
-      });
-      Alert.alert('Success', 'Outfit saved successfully!');
+      if (outfitId) {
+        navigation.goBack();
+        Alert.alert('Success', 'Outfit updated successfully!');
+      } else {
+        navigation.navigate('Home', { 
+          screen: 'HomeScreen',
+          params: { refresh: true }
+        });
+        Alert.alert('Success', 'Outfit saved successfully!');
+      }
 
     } catch (error) {
       console.error('Error saving outfit:', error);
@@ -316,7 +392,6 @@ const CombineClothesScreen = ({ navigation }) => {
   return (
     <SafeAreaView style={styles.container}>
       <View style={styles.header}>
-        <Text style={styles.title}>CREATE YOUR OUTFIT</Text>
         <View style={styles.outfitNameContainer}>
           <Text style={styles.outfitNameLabel}>OUTFIT NAME</Text>
           <TouchableOpacity onPress={() => setIsEditingName(true)}>
@@ -411,13 +486,6 @@ const styles = StyleSheet.create({
     padding: spacing.lg,
     borderBottomWidth: 1,
     borderBottomColor: '#E9ECEF',
-  },
-  title: {
-    fontSize: 18,
-    fontWeight: '600',
-    textAlign: 'center',
-    color: '#000000',
-    marginBottom: spacing.xl,
   },
   outfitNameContainer: {
     flexDirection: 'row',
@@ -569,6 +637,8 @@ const styles = StyleSheet.create({
   gridItem: {
     width: '30%',
     marginBottom: spacing.lg,
+    borderWidth: 0,
+    borderColor: 'transparent',
   },
 });
 

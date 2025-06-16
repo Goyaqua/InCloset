@@ -36,7 +36,7 @@ const ClosetScreen = () => {
         console.error('Supabase query error:', error);
         throw error;
       }
-      console.log('Supabase query data:', data);
+      // console.log('Supabase query data:', data);
 
       // Filter by search query
       const filteredData = data.filter(item => 
