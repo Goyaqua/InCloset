@@ -184,10 +184,10 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
+    shadowOpacity: 0,
     shadowRadius: 4,
     elevation: 3,
-    borderWidth: 1,
+    borderWidth: 0,
     borderColor: 'transparent',
   },
   selectedContainer: {
