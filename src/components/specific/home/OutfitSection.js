@@ -1,7 +1,6 @@
 import React, { useRef } from 'react';
 import { View, Text, StyleSheet, Dimensions, TouchableOpacity, ScrollView } from 'react-native';
 import { colors, spacing } from '../../../styles/theme';
-import { PanGestureHandler } from 'react-native-gesture-handler';
 import OutfitItem from './OutfitItem';
 import AddOutfitButton from './AddOutfitButton';
 import { Ionicons } from '@expo/vector-icons';
@@ -22,14 +21,6 @@ const OutfitSection = ({
   forceFavoriteIcon = false
 }) => {
   const data = [...outfits, { id: 'add-button', isAddButton: true }];
-  const scrollViewRef = useRef(null);
-
-  const onGestureEvent = ({ nativeEvent }) => {
-    const { translationX } = nativeEvent;
-    if (scrollViewRef.current) {
-      scrollViewRef.current.scrollTo({ x: -translationX, animated: false });
-    }
-  };
 
   const renderItem = (item) => {
     if (item.isAddButton) {
@@ -66,21 +57,18 @@ const OutfitSection = ({
           <Ionicons name="chevron-forward" size={20} color={textColor} />
         </View>
       </TouchableOpacity>
-      <PanGestureHandler onGestureEvent={onGestureEvent}>
-        <ScrollView
-          ref={scrollViewRef}
-          horizontal
-          showsHorizontalScrollIndicator={false}
-          contentContainerStyle={styles.scrollContent}
-          bounces={false}
-        >
-          {data.map((item) => (
-            <View key={item.id.toString()}>
-              {renderItem(item)}
-            </View>
-          ))}
-        </ScrollView>
-      </PanGestureHandler>
+      <ScrollView
+        horizontal
+        showsHorizontalScrollIndicator={false}
+        contentContainerStyle={styles.scrollContent}
+        bounces={false}
+      >
+        {data.map((item) => (
+          <View key={item.id.toString()}>
+            {renderItem(item)}
+          </View>
+        ))}
+      </ScrollView>
     </View>
   );
 };

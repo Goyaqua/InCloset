@@ -2,19 +2,10 @@ import React from 'react';
 import { View, Text, StyleSheet, FlatList, TouchableOpacity } from 'react-native';
 import { colors, spacing } from '../../../styles/theme';
 import ClothingItem from './ClothingItem';
-import AddItemButton from '../closet/AddItemButton';
 import { Ionicons } from '@expo/vector-icons';
 
 const AllClothesSection = ({ clothes, onItemPress, onSeeAllPress, onAddPress }) => {
   const renderItem = ({ item }) => {
-    if (item.isAddButton) {
-      return (
-        <View style={styles.clothingItem}>
-          <AddItemButton onPress={onAddPress} />
-        </View>
-      );
-    }
-    
     return (
       <View style={styles.clothingItem}>
         <ClothingItem
@@ -28,9 +19,9 @@ const AllClothesSection = ({ clothes, onItemPress, onSeeAllPress, onAddPress }) 
     );
   };
 
-  // Add the "Add" button to the end of the first 5 items
-  const limitedClothes = clothes.slice(0, 5);
-  const data = [...limitedClothes, { id: 'add-button', isAddButton: true }];
+  // Only show the first 6 clothes, no add button
+  const limitedClothes = clothes.slice(0, 6);
+  const data = limitedClothes;
 
   return (
     <View style={styles.container}>
@@ -101,7 +92,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 0,
   },
   row: {
-    justifyContent: 'space-between',
+    alignItems: 'flex-start',
     marginBottom: spacing.lg,
   },
   clothingItem: {

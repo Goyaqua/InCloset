@@ -63,8 +63,55 @@ const CombineClothesScreen = ({ route, navigation }) => {
   const preloadDoneRef = useRef(false);
   const suggestedItemsLoadedRef = useRef(false);
 
+  // Reset state function
+  const resetState = () => {
+    setSelectedItems([]);
+    setOutfitName('My New Outfit');
+    setSelectedItemId(null);
+    setLastSelectedId(null);
+    setActiveFilters(['top']);
+    preloadDoneRef.current = false;
+    suggestedItemsLoadedRef.current = false;
+  };
+
+  // Fetch clothes on mount
   useEffect(() => {
     fetchClothes();
+  }, []);
+
+  // Handle screen focus
+  useEffect(() => {
+    const unsubscribe = navigation.addListener('focus', () => {
+      // Reset state for new outfits
+      if (!outfitId && !outfit && (!suggestedItems || suggestedItems.length === 0)) {
+        console.log('Screen focused - resetting state for new outfit');
+        resetState();
+      }
+      // Reset preload flag for editing scenarios
+      if (outfitId || outfit) {
+        console.log('Screen focused - resetting preload flag for editing');
+        preloadDoneRef.current = false;
+      }
+      // Always refresh clothes
+      fetchClothes();
+    });
+
+    return unsubscribe;
+  }, [navigation, outfitId, outfit, suggestedItems]);
+
+  // Reset all state when component mounts
+  useEffect(() => {
+    // Only reset if not editing or AI suggestions
+    if (!outfitId && !outfit && (!suggestedItems || suggestedItems.length === 0)) {
+      console.log('Creating new outfit - resetting all state');
+      resetState();
+    }
+
+    // Cleanup function to reset state when component unmounts
+    return () => {
+      console.log('Cleaning up combine screen state');
+      resetState();
+    };
   }, []);
 
   // Set outfit name when outfit changes (for editing)
@@ -116,17 +163,6 @@ const CombineClothesScreen = ({ route, navigation }) => {
       suggestedItemsLoadedRef.current = false;
     };
   }, [suggestedItems]);
-
-  // Add focus listener to refresh data when screen comes into focus
-  useEffect(() => {
-    const unsubscribe = navigation.addListener('focus', () => {
-      // Reset the preload flag to allow reloading when data is refreshed
-      preloadDoneRef.current = false;
-      fetchClothes();
-    });
-
-    return unsubscribe;
-  }, [navigation]);
 
   // When all clothes are fetched and we have an outfit to edit, preload items
   useEffect(() => {
@@ -359,7 +395,10 @@ const CombineClothesScreen = ({ route, navigation }) => {
 
       resetOutfit();
       if (outfitId) {
-        navigation.goBack();
+        navigation.navigate('Home', { 
+          screen: 'HomeScreen',
+          params: { refresh: true }
+        });
         Alert.alert('Success', 'Outfit updated successfully!');
       } else {
         navigation.navigate('Home', { 
@@ -532,8 +571,17 @@ Respond with ONLY the outfit name, no additional text or quotes.`;
                 />
               )}
             </TouchableOpacity>
-            <TouchableOpacity onPress={() => setIsEditingName(true)}>
+            <TouchableOpacity 
+              onPress={() => setIsEditingName(true)}
+              style={styles.editButton}
+            >
               <MaterialCommunityIcons name="pencil" size={16} color={colors.primary} />
+            </TouchableOpacity>
+            <TouchableOpacity 
+              onPress={resetState}
+              style={styles.resetButton}
+            >
+              <MaterialCommunityIcons name="refresh" size={16} color={colors.primary} />
             </TouchableOpacity>
           </View>
         </View>
@@ -796,6 +844,22 @@ const styles = StyleSheet.create({
   aiNameButtonDisabled: {
     backgroundColor: '#D1D5DB',
     opacity: 0.6,
+  },
+  editButton: {
+    padding: spacing.xs,
+    borderRadius: 8,
+    backgroundColor: '#F3F4F6',
+    borderWidth: 1,
+    borderColor: '#E5E7EB',
+    marginLeft: spacing.sm,
+  },
+  resetButton: {
+    padding: spacing.xs,
+    borderRadius: 8,
+    backgroundColor: '#F3F4F6',
+    borderWidth: 1,
+    borderColor: '#E5E7EB',
+    marginLeft: spacing.sm,
   },
 });
 
